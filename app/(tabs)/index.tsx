@@ -456,7 +456,9 @@ export default function BrowserScreen() {
 
             {/* Quick Access */}
             <QuickAccessGrid onSitePress={(siteUrl) => {
+              // Navigate to the selected site
               setCurrentUrl(siteUrl);
+              setUrl(siteUrl);
               setIsHomePage(false);
             }} />
           </ScrollView>
