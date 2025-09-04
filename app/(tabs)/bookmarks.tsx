@@ -91,7 +91,6 @@ const BookmarksScreen = () => {
       setIsLoading(true);
       try {
         await loadBookmarks();
-        setFilteredBookmarks(bookmarks);
       } catch (error) {
         console.error('Failed to load bookmarks:', error);
         Alert.alert('Error', 'Failed to load bookmarks');
@@ -101,7 +100,7 @@ const BookmarksScreen = () => {
     };
     
     initializeBookmarks();
-  }, []);
+  }, [loadBookmarks]);
   
   // Extract unique folders from bookmarks
   useEffect(() => {

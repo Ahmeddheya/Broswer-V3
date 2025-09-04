@@ -7,6 +7,15 @@ export class PaymentManager {
   // Save payment card
   static async saveCard(card: Omit<PaymentCard, 'id' | 'dateAdded'>): Promise<void> {
     try {
+      // Validate card before saving
+      if (!this.validateCardNumber(card.cardNumber)) {
+        throw new Error('Invalid card number');
+      }
+      
+      if (!this.validateExpiryDate(card.expiryDate)) {
+        throw new Error('Invalid expiry date');
+      }
+      
       const cards = await this.getCards();
       
       // If this is set as default, remove default from others
@@ -18,7 +27,7 @@ export class PaymentManager {
         ...card,
         id: `card_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
         dateAdded: Date.now(),
-        // Mask card number for security
+        // Store last 4 digits only for security
         cardNumber: this.maskCardNumber(card.cardNumber),
       };
 
@@ -117,5 +126,24 @@ export class PaymentManager {
   // Clear all cards
   static async clearAllCards(): Promise<void> {
     await StorageManager.setItem(this.CARDS_KEY, []);
+  }
+  
+  // Validate expiry date
+  private static validateExpiryDate(expiryDate: string): boolean {
+    const regex = /^(0[1-9]|1[0-2])\/([0-9]{2})$/;
+    if (!regex.test(expiryDate)) return false;
+    
+    const [month, year] = expiryDate.split('/');
+    const currentDate = new Date();
+    const currentYear = currentDate.getFullYear() % 100;
+    const currentMonth = currentDate.getMonth() + 1;
+    
+    const cardYear = parseInt(year);
+    const cardMonth = parseInt(month);
+    
+    if (cardYear < currentYear) return false;
+    if (cardYear === currentYear && cardMonth < currentMonth) return false;
+    
+    return true;
   }
 }

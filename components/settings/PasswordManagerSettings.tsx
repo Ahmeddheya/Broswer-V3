@@ -68,6 +68,12 @@ export const PasswordManagerSettings: React.FC<PasswordManagerSettingsProps> = (
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
+    
+    // Validate password strength
+    if (newPassword.password.length < 8) {
+      Alert.alert('Weak Password', 'Password must be at least 8 characters long');
+      return;
+    }
 
     try {
       await PasswordManager.savePassword(newPassword);
@@ -76,7 +82,7 @@ export const PasswordManagerSettings: React.FC<PasswordManagerSettingsProps> = (
       loadPasswords();
       Alert.alert('Success', 'Password saved successfully');
     } catch (error) {
-      Alert.alert('Error', 'Failed to save password');
+      Alert.alert('Error', error.message || 'Failed to save password');
     }
   };
 

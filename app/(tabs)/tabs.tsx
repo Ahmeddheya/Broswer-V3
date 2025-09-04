@@ -152,7 +152,7 @@ const TabsScreen = React.memo(() => {
 
   const handleTabPress = useCallback((tabId: string) => {
     setActiveTab(tabId);
-    router.push('/');
+    router.replace('/');
   }, [setActiveTab]);
 
   const handleSortChange = useCallback(() => {

@@ -214,26 +214,9 @@ export const useBrowserStore = create<BrowserState>((set, get) => ({
   },
   
   // Initial state
-  tabs: [],
   activeTabs: [],
   closedTabs: [],
   currentTabId: undefined,
-  suspendedTabs: [],
-  addTab: (url: string, title: string) => {
-    const newTab = {
-      id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-      title,
-      url,
-      isActive: true,
-    };
-    
-    set((state) => ({
-      tabs: [...state.tabs, newTab],
-      activeTabs: [...state.activeTabs, newTab],
-    }));
-    
-    return newTab.id;
-  },
   closeTab: (tabId: string) => {
     const state = get();
     const tabToClose = state.activeTabs.find(tab => tab.id === tabId);
@@ -251,36 +234,10 @@ export const useBrowserStore = create<BrowserState>((set, get) => ({
         currentTabId: state.currentTabId === tabId ? 
           (state.activeTabs.length > 1 ? state.activeTabs.find(t => t.id !== tabId)?.id : undefined) : 
           state.currentTabId,
-        // Keep legacy suspendedTabs for backward compatibility
-        suspendedTabs: [...state.suspendedTabs, { ...tabToClose, suspendedAt: Date.now() }],
       }));
 
       get().saveTabs();
     }
-  },
-  restoreTab: (tabId: string) => {
-    set((state) => {
-      const tab = state.suspendedTabs.find(t => t.id === tabId);
-      if (tab) {
-        const { suspendedAt, ...restoreTab } = tab;
-        return {
-          suspendedTabs: state.suspendedTabs.filter(t => t.id !== tabId),
-          activeTabs: [...state.activeTabs, restoreTab],
-        };
-      }
-      return state;
-    });
-  },
-  clearAllSuspendedTabs: () => {
-    set((state) => ({
-      suspendedTabs: [],
-    }));
-  },
-  closeAllTabs: () => {
-    set((state) => ({
-      activeTabs: [],
-      suspendedTabs: [...state.suspendedTabs, ...state.activeTabs.map(tab => ({ ...tab, suspendedAt: Date.now() }))],
-    }));
   },
 
   // New unified tab management functions from tabsStore

@@ -79,6 +79,27 @@ const DownloadsScreen = React.memo(() => {
 
   const downloadFile = useCallback(async (url: string, filename: string) => {
     try {
+      // Use the actual download manager
+      const downloadId = await DownloadManager.startDownload(
+        url,
+        filename,
+        {},
+        (progress) => {
+          setDownloads(prev => prev.map(d => {
+            if (d.id === downloadId) {
+              return {
+                ...d,
+                progress: Math.round(progress.progress),
+                size: progress.totalBytesExpectedToWrite,
+                status: progress.progress >= 100 ? 'completed' : 'downloading',
+                dateCompleted: progress.progress >= 100 ? Date.now() : undefined,
+              };
+            }
+            return d;
+          }));
+        }
+      );
+      
       const downloadId = Date.now().toString();
       const newDownload: DownloadItem = {
         id: downloadId,
@@ -93,32 +114,11 @@ const DownloadsScreen = React.memo(() => {
 
       setDownloads(prev => [...prev, newDownload]);
 
-      // Simulate download progress
-      const progressInterval = setInterval(() => {
-        setDownloads(prev => prev.map(d => {
-          if (d.id === downloadId && d.progress < 100) {
-            const newProgress = Math.min(d.progress + Math.random() * 20, 100);
-            return {
-              ...d,
-              progress: Math.round(newProgress),
-              status: newProgress >= 100 ? 'completed' : 'downloading',
-              dateCompleted: newProgress >= 100 ? Date.now() : undefined,
-              size: newProgress >= 100 ? Math.floor(Math.random() * 5000000) + 100000 : d.size
-            };
-          }
-          return d;
-        }));
-      }, 500);
-
-      // Stop simulation after completion
-      setTimeout(() => {
-        clearInterval(progressInterval);
-        Alert.alert('Download Complete', `${filename} has been downloaded successfully.`);
-      }, 5000);
+      Alert.alert('Download Started', `${filename} download has been initiated.`);
 
     } catch (error) {
       console.error('Download failed:', error);
-      Alert.alert('Download Failed', 'Failed to download the file. Please try again.');
+      Alert.alert('Download Failed', error.message || 'Failed to download the file. Please try again.');
     }
   }, []);
 

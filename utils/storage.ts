@@ -204,6 +204,12 @@ export class StorageManager {
 
   static async addHistoryItem(item: Omit<HistoryItem, 'id' | 'timestamp' | 'visitCount'>): Promise<void> {
     try {
+      // Validate input
+      if (!item.title || !item.url) {
+        console.warn('Invalid history item:', item);
+        return;
+      }
+      
       const history = await this.getHistory();
       const existingIndex = history.findIndex(h => h.url === item.url);
       
@@ -235,7 +241,8 @@ export class StorageManager {
       await this.setItem(STORAGE_KEYS.HISTORY, history);
     } catch (error) {
       console.error('Error adding history item:', error);
-      throw error;
+      // Don't throw error for history items to avoid breaking navigation
+      console.warn('Continuing without adding to history');
     }
   }
 
@@ -287,7 +294,15 @@ export class StorageManager {
       const existingIndex = bookmarks.findIndex(b => b.url === item.url);
       
       if (existingIndex >= 0) {
-        throw new Error('Bookmark already exists');
+        // Update existing bookmark instead of throwing error
+        bookmarks[existingIndex] = {
+          ...bookmarks[existingIndex],
+          title: item.title,
+          folder: item.folder,
+          tags: item.tags,
+        };
+        await this.setItem(STORAGE_KEYS.BOOKMARKS, bookmarks);
+        return;
       }
 
       const newBookmark: BookmarkItem = {

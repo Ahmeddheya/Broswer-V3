@@ -96,8 +96,10 @@ export class AddressManager {
   }
 
   private static isValidPhone(phone: string): boolean {
-    const phoneRegex = /^[\+]?[1-9][\d]{0,15}$/;
-    return phoneRegex.test(phone.replace(/[\s\-\(\)]/g, ''));
+    // More comprehensive phone validation
+    const cleaned = phone.replace(/[\s\-\(\)\+]/g, '');
+    const phoneRegex = /^[0-9]{7,15}$/;
+    return phoneRegex.test(cleaned);
   }
 
   // Clear all addresses

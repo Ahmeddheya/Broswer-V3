@@ -44,22 +44,34 @@ export const hp = (percentage: number): number => {
 
 // حساب حجم الخط المتجاوب
 export const responsiveFontSize = (size: number): number => {
-  const scale = SCREEN_WIDTH / 375; // 375 هو عرض iPhone 6/7/8 كمرجع
-  const newSize = size * scale;
+  // Simplified responsive font calculation
+  const screenSize = getScreenSize();
   
-  // تطبيق حدود دنيا وعليا للخط
-  const minSize = size * 0.8;
-  const maxSize = size * 1.3;
+  const multipliers = {
+    xs: 0.85,
+    sm: 0.9,
+    md: 1.0,
+    lg: 1.1,
+    xl: 1.2,
+  };
   
-  return Math.round(PixelRatio.roundToNearestPixel(
-    Math.max(minSize, Math.min(maxSize, newSize))
-  ));
+  return Math.round(size * multipliers[screenSize]);
 };
 
 // حساب المسافات المتجاوبة (padding/margin)
 export const responsiveSpacing = (size: number): number => {
-  const scale = Math.min(SCREEN_WIDTH / 375, 1.5); // حد أقصى 1.5x
-  return Math.round(PixelRatio.roundToNearestPixel(size * scale));
+  // Simplified responsive spacing
+  const screenSize = getScreenSize();
+  
+  const multipliers = {
+    xs: 0.8,
+    sm: 0.9,
+    md: 1.0,
+    lg: 1.1,
+    xl: 1.2,
+  };
+  
+  return Math.round(size * multipliers[screenSize]);
 };
 
 // حساب حجم الأيقونات المتجاوب

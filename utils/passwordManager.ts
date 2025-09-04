@@ -68,9 +68,28 @@ export class PasswordManager {
   // Get all saved passwords
   static async getPasswords(): Promise<SavedPassword[]> {
     try {
+      // Check if biometric auth is required and available
+      const biometricRequired = await this.isBiometricAuthRequired();
+      if (biometricRequired) {
+        const authenticated = await this.authenticateWithBiometrics();
+        if (!authenticated) {
+          throw new Error('Authentication required to access passwords');
+        }
+      }
+      
       if (Platform.OS === 'web') {
+        // For web, use encrypted localStorage
         const stored = localStorage.getItem(this.PASSWORDS_KEY);
-        return stored ? JSON.parse(stored) : [];
+        if (stored) {
+          try {
+            const decrypted = this.decryptData(stored);
+            return JSON.parse(decrypted);
+          } catch (error) {
+            console.error('Failed to decrypt passwords:', error);
+            return [];
+          }
+        }
+        return [];
       }
       
       const stored = await SecureStore.getItemAsync(this.PASSWORDS_KEY);
@@ -85,10 +104,43 @@ export class PasswordManager {
     const data = JSON.stringify(passwords);
     
     if (Platform.OS === 'web') {
-      localStorage.setItem(this.PASSWORDS_KEY, data);
+      // Encrypt data before storing in web localStorage
+      const encrypted = this.encryptData(data);
+      localStorage.setItem(this.PASSWORDS_KEY, encrypted);
     } else {
       await SecureStore.setItemAsync(this.PASSWORDS_KEY, data);
     }
+  }
+  
+  // Check if biometric auth is required
+  private static async isBiometricAuthRequired(): Promise<boolean> {
+    try {
+      const setting = await StorageManager.getItem('biometric_auth_enabled', false);
+      return setting && await this.isBiometricAvailable();
+    } catch {
+      return false;
+    }
+  }
+  
+  // Simple encryption for web (in production, use proper encryption)
+  private static encryptData(data: string): string {
+    if (Platform.OS === 'web') {
+      // Simple base64 encoding (in production, use proper encryption)
+      return btoa(data);
+    }
+    return data;
+  }
+  
+  // Simple decryption for web
+  private static decryptData(encryptedData: string): string {
+    if (Platform.OS === 'web') {
+      try {
+        return atob(encryptedData);
+      } catch {
+        throw new Error('Failed to decrypt data');
+      }
+    }
+    return encryptedData;
   }
 
   // Delete password

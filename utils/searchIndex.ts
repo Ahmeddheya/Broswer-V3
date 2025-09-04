@@ -108,6 +108,21 @@ export class SearchIndexManager {
     item: HistoryItem | BookmarkItem,
     type: 'history' | 'bookmark'
   ): SearchIndexItem {
+    // Ensure item has required properties
+    if (!item.title || !item.url) {
+      console.warn('Invalid item for indexing:', item);
+      return {
+        id: item.id || `invalid_${Date.now()}`,
+        type,
+        title: item.title || 'Untitled',
+        url: item.url || '',
+        content: '',
+        keywords: [],
+        score: 0,
+        lastUpdated: Date.now(),
+      };
+    }
+    
     const title = item.title.toLowerCase();
     const url = item.url.toLowerCase();
     const domain = this.extractDomain(item.url).toLowerCase();

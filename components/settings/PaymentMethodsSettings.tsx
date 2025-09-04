@@ -53,15 +53,23 @@ export const PaymentMethodsSettings: React.FC<PaymentMethodsSettingsProps> = ({
       return;
     }
 
-    if (!PaymentManager.validateCardNumber(newCard.cardNumber)) {
+    const cleanCardNumber = newCard.cardNumber.replace(/\s/g, '');
+    if (!PaymentManager.validateCardNumber(cleanCardNumber)) {
       Alert.alert('Error', 'Invalid card number');
+      return;
+    }
+    
+    // Validate expiry date format
+    if (!/^(0[1-9]|1[0-2])\/[0-9]{2}$/.test(newCard.expiryDate)) {
+      Alert.alert('Error', 'Invalid expiry date format (MM/YY)');
       return;
     }
 
     try {
-      const cardType = PaymentManager.detectCardType(newCard.cardNumber);
+      const cardType = PaymentManager.detectCardType(cleanCardNumber);
       await PaymentManager.saveCard({
         ...newCard,
+        cardNumber: cleanCardNumber,
         cardType,
       });
       

@@ -58,6 +58,15 @@ export class DownloadManager {
     options: DownloadOptions = {},
     onProgress?: (progress: DownloadProgress) => void
   ): Promise<string> {
+    if (Platform.OS === 'web') {
+      // For web platform, use browser download
+      return this.downloadFromWebView(url, filename, onProgress).then(() => 'web-download');
+    }
+    
+    if (!FileSystem) {
+      throw new Error('FileSystem not available on this platform');
+    }
+    
     try {
       // Validate URL
       if (!this.isValidUrl(url)) {
@@ -335,15 +344,26 @@ export class DownloadManager {
     if (Platform.OS === 'web') {
       // For web, use browser's native download
       try {
+        // Create a temporary anchor element for download
         const link = document.createElement('a');
         link.href = url;
-        link.download = filename || 'download';
+        link.download = filename || this.generateFilename(url);
+        link.target = '_blank';
+        link.rel = 'noopener noreferrer';
+        
+        // Add to DOM temporarily
         document.body.appendChild(link);
         link.click();
-        document.body.removeChild(link);
+        
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+        
         Alert.alert('Success', 'Download started using browser');
       } catch (error) {
-        Alert.alert('Error', 'Download not supported in web browser');
+        console.error('Download error:', error);
+        Alert.alert('Error', 'Failed to start download. Please try right-clicking the link and selecting "Save as..."');
       }
       return;
     }

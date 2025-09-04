@@ -92,9 +92,19 @@ export const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, currentU
   const handleAddBookmark = async () => {
     try {
       // Extract title from URL or use URL as title
-      const title = currentUrl.includes('://') ? 
-        new URL(currentUrl).hostname : 
-        currentUrl;
+      let title = 'New Bookmark';
+      
+      try {
+        if (currentUrl.includes('://')) {
+          const urlObj = new URL(currentUrl);
+          title = urlObj.hostname.replace('www.', '') || 'New Bookmark';
+        } else {
+          title = currentUrl || 'New Bookmark';
+        }
+      } catch (error) {
+        console.warn('Failed to parse URL for title:', error);
+        title = currentUrl || 'New Bookmark';
+      }
       
       await addBookmark({
         title: title,
@@ -109,9 +119,10 @@ export const MenuModal: React.FC<MenuModalProps> = ({ visible, onClose, currentU
       );
       onClose();
     } catch (error) {
+      console.error('Failed to add bookmark:', error);
       Alert.alert(
         'Error',
-        'Failed to add bookmark. Please try again.',
+        error.message || 'Failed to add bookmark. Please try again.',
         [{ text: 'OK' }]
       );
     }

@@ -86,7 +86,6 @@ export default function HistoryScreen() {
       setIsLoading(true);
       try {
         await loadHistory();
-        setFilteredHistory(history);
       } catch (error) {
         console.error('Failed to load history:', error);
         Alert.alert('Error', 'Failed to load browsing history');
@@ -96,7 +95,7 @@ export default function HistoryScreen() {
     };
     
     initializeHistory();
-  }, []);
+  }, [loadHistory]);
   
   // Update filtered history when history changes
   useEffect(() => {

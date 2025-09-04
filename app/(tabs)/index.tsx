@@ -129,15 +129,60 @@ export default function BrowserScreen() {
   };
 
   const findInPage = (text) => {
-    console.log('Find in page disabled:', text);
+    if (!text.trim()) return;
+    
+    const searchScript = `
+      (function() {
+        if (window.find) {
+          const found = window.find('${text.replace(/'/g, "\\'")}', false, false, true);
+          if (found) {
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0);
+              const rect = range.getBoundingClientRect();
+              window.scrollTo({
+                top: window.scrollY + rect.top - window.innerHeight / 2,
+                behavior: 'smooth'
+              });
+            }
+          }
+          return found;
+        }
+        return false;
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(searchScript);
   };
 
   const findNext = () => {
-    console.log('Find next disabled');
+    if (!findText.trim()) return;
+    
+    const nextScript = `
+      (function() {
+        if (window.find) {
+          return window.find('${findText.replace(/'/g, "\\'")}', false, false, true);
+        }
+        return false;
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(nextScript);
   };
 
   const findPrevious = () => {
-    console.log('Find previous disabled');
+    if (!findText.trim()) return;
+    
+    const prevScript = `
+      (function() {
+        if (window.find) {
+          return window.find('${findText.replace(/'/g, "\\'")}', false, true, true);
+        }
+        return false;
+      })();
+    `;
+    
+    webViewRef.current?.injectJavaScript(prevScript);
   };
 
   const handleSearch = () => {
@@ -191,6 +236,8 @@ export default function BrowserScreen() {
 
   // Handle WebView navigation state changes
   const handleNavigationStateChange = (navState) => {
+    if (!navState) return;
+    
     setCurrentUrl(navState.url);
     setUrl(navState.url); // Update URL bar to match current page
     setIsLoading(navState.loading);
@@ -198,7 +245,7 @@ export default function BrowserScreen() {
     setCanGoForward(navState.canGoForward);
     
     // Add to history when page loads successfully
-    if (!navState.loading && navState.url && navState.title) {
+    if (!navState.loading && navState.url && navState.title && !incognitoMode) {
       addToHistory({
         title: navState.title || navState.url,
         url: navState.url,
@@ -209,14 +256,19 @@ export default function BrowserScreen() {
   
   // Handle download requests
   const handleDownloadRequest = async (event) => {
+    if (!event?.nativeEvent?.url) {
+      Alert.alert('Download Error', 'Invalid download URL');
+      return;
+    }
+    
     const { url: downloadUrl } = event.nativeEvent;
     
     try {
-      const DownloadManager = (await import('../utils/downloadManager')).default;
+      const DownloadManager = (await import('../../utils/downloadManager')).default;
       await DownloadManager.downloadFromWebView(downloadUrl);
     } catch (error) {
       console.error('Download failed:', error);
-      Alert.alert('Download Error', 'Failed to start download');
+      Alert.alert('Download Error', error.message || 'Failed to start download');
     }
   };
 
@@ -296,22 +348,22 @@ export default function BrowserScreen() {
 
 
   // Handle night mode changes dynamically
-  // useEffect(() => {
-  //   if (webViewRef.current && currentUrl) {
-  //     if (nightMode) {
-  //       webViewRef.current.injectJavaScript(nightModeCSS);
-  //     } else {
-  //       webViewRef.current.injectJavaScript(removeNightModeCSS);
-  //     }
-  //   }
-  // }, [nightMode]);
+  useEffect(() => {
+    if (webViewRef.current && currentUrl && !isHomePage) {
+      if (nightMode) {
+        webViewRef.current.injectJavaScript(nightModeCSS);
+      } else {
+        webViewRef.current.injectJavaScript(removeNightModeCSS);
+      }
+    }
+  }, [nightMode, currentUrl, isHomePage]);
 
   // Handle desktop mode changes by reloading the page
-  // useEffect(() => {
-  //   if (webViewRef.current && currentUrl) {
-  //     webViewRef.current.reload();
-  //   }
-  // }, [desktopMode]);
+  useEffect(() => {
+    if (webViewRef.current && currentUrl && !isHomePage) {
+      webViewRef.current.reload();
+    }
+  }, [desktopMode]);
 
 
 

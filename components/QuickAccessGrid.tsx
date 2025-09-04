@@ -76,6 +76,13 @@ export const QuickAccessGrid: React.FC<QuickAccessGridProps> = ({ onSitePress })
       Alert.alert('Error', 'Please enter a valid URL');
       return;
     }
+    
+    // Check for duplicate sites
+    const existingSite = sites.find(site => site.url === url || site.name.toLowerCase() === newSite.name.toLowerCase());
+    if (existingSite) {
+      Alert.alert('Error', 'A site with this name or URL already exists');
+      return;
+    }
 
     const customSite: Site = {
       name: newSite.name,
