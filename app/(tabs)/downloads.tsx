@@ -100,7 +100,6 @@ const DownloadsScreen = React.memo(() => {
         }
       );
       
-      const downloadId = Date.now().toString();
       const newDownload: DownloadItem = {
         id: downloadId,
         name: filename,
