@@ -242,7 +242,7 @@ export const useBrowserStore = create<BrowserState>((set, get) => ({
 
   // New unified tab management functions from tabsStore
   createNewTab: (url?: string) => {
-    const resolvedUrl = url ? resolveToUrlOrSearch(url) : 'about:blank';
+    const resolvedUrl = url ? resolveToUrlOrSearch(url) : 'https://www.google.com';
     const newTab: Tab = {
       id: `tab_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
       title: generateTabTitle(resolvedUrl),

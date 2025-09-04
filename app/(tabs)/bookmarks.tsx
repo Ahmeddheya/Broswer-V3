@@ -226,7 +226,7 @@ const BookmarksScreen = () => {
   };
 
   const handleItemPress = (url: string) => {
-    router.push({ pathname: '/', params: { url } });
+    router.replace(`/?url=${encodeURIComponent(url)}`);
   };
 
   const handleEditBookmark = (item: BookmarkItem) => {

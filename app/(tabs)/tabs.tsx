@@ -94,8 +94,8 @@ const TabsScreen = React.memo(() => {
 
   const handleCreateNewTab = useCallback(() => {
     const tabId = createNewTab();
-    // Navigate to home page to browse
-    router.push('/');
+    // Navigate to browser with Google search page
+    router.replace('/?url=https://www.google.com');
   }, [createNewTab]);
 
   const handleCloseTab = useCallback((tabId: string) => {
@@ -152,7 +152,10 @@ const TabsScreen = React.memo(() => {
 
   const handleTabPress = useCallback((tabId: string) => {
     setActiveTab(tabId);
-    router.replace('/');
+    // Get the tab URL and navigate to it
+    const tab = activeTabs.find(t => t.id === tabId);
+    const tabUrl = tab?.url || 'https://www.google.com';
+    router.replace(`/?url=${encodeURIComponent(tabUrl)}`);
   }, [setActiveTab]);
 
   const handleSortChange = useCallback(() => {

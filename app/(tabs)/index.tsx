@@ -93,14 +93,18 @@ export default function BrowserScreen() {
   // Handle URL parameter from navigation
   useEffect(() => {
     const handleUrlParam = () => {
-      // Check if there's a URL parameter from navigation
-      // This would be set when navigating from history/bookmarks
-      const params = new URLSearchParams(window.location.search);
-      const paramUrl = params.get('url');
-      if (paramUrl) {
-        setUrl(paramUrl);
-        setCurrentUrl(paramUrl);
-        setIsHomePage(false);
+      try {
+        // Check if there's a URL parameter from navigation
+        const params = new URLSearchParams(window.location.search);
+        const paramUrl = params.get('url');
+        if (paramUrl) {
+          const decodedUrl = decodeURIComponent(paramUrl);
+          setUrl(decodedUrl);
+          setCurrentUrl(decodedUrl);
+          setIsHomePage(false);
+        }
+      } catch (error) {
+        console.warn('Error handling URL parameter:', error);
       }
     };
     
@@ -273,9 +277,10 @@ export default function BrowserScreen() {
   };
 
   const handleNewTab = () => {
-    const newTabUrl = 'https://www.google.com';
-    setCurrentUrl(newTabUrl);
-    setUrl(newTabUrl);
+    // Create new tab and navigate to Google
+    const tabId = createNewTab('https://www.google.com');
+    setCurrentUrl('https://www.google.com');
+    setUrl('https://www.google.com');
     setIsHomePage(false);
   };
 

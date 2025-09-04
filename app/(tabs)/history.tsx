@@ -150,7 +150,7 @@ export default function HistoryScreen() {
 
   const handleItemPress = (url: string) => {
     // Navigate back to browser with the selected URL
-    router.push({ pathname: '/', params: { url } });
+    router.replace(`/?url=${encodeURIComponent(url)}`);
   };
   
   const formatTimestamp = (timestamp: number): string => {
