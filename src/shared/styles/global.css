@@ -1,0 +1,28 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Custom styles for React Native */
+.text-primary {
+  color: #ffffff;
+}
+
+.text-secondary {
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.text-tertiary {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.bg-primary {
+  background-color: #0a0b1e;
+}
+
+.bg-secondary {
+  background-color: #1a1b3a;
+}
+
+.bg-tertiary {
+  background-color: #2a2b4a;
+}

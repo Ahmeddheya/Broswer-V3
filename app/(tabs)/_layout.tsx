@@ -4,12 +4,12 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
-    <View style={{ flex: 1, backgroundColor: '#0a0b1e' }}>
+    <View className="flex-1 bg-background-primary">
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            display: 'none',
+            display: 'none', // Keep hidden as requested
           },
           tabBarActiveTintColor: '#4CAF50',
           tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
@@ -33,7 +33,7 @@ export default function TabLayout() {
         <Tabs.Screen
           name="tabs"
           options={{
-            title: 'My Tabs',
+            title: 'Tabs',
             tabBarIcon: ({ color, size }) => (
               <Ionicons name="copy-outline" size={size} color={color} />
             ),
