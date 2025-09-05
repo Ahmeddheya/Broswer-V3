@@ -3,33 +3,13 @@ import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
-import { SearchInput } from '@/shared/ui/inputs/SearchInput';
 import { useBrowserStore } from '@/shared/store/browser';
-import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
-import { HistoryItem } from '@/shared/types';
 
 export const HistoryScreen: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  
-  const { history, removeFromHistory, clearHistory, searchHistory } = useBrowserStore();
+  const { history, clearHistory } = useBrowserStore();
 
   const handleItemPress = (url: string) => {
-    router.replace(`/?url=${encodeURIComponent(url)}`);
-  };
-
-  const handleDeleteItem = (item: HistoryItem) => {
-    Alert.alert(
-      'Delete from History',
-      `Are you sure you want to delete "${item.title}" from history?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: () => removeFromHistory(item.id),
-        },
-      ]
-    );
+    router.replace('/(tabs)/');
   };
 
   const handleClearHistory = () => {
@@ -47,11 +27,21 @@ export const HistoryScreen: React.FC = () => {
     );
   };
 
-  const filteredHistory = searchQuery 
-    ? searchHistory(searchQuery)
-    : history;
+  const formatTimeAgo = (timestamp: number): string => {
+    const now = Date.now();
+    const diff = now - timestamp;
+    
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+    
+    if (minutes < 1) return 'now';
+    if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+    if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+    return `${days} day${days > 1 ? 's' : ''} ago`;
+  };
 
-  const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
+  const renderHistoryItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       onPress={() => handleItemPress(item.url)}
       style={styles.historyItem}
@@ -66,7 +56,7 @@ export const HistoryScreen: React.FC = () => {
             {item.title}
           </Text>
           <Text style={styles.historyUrl} numberOfLines={1}>
-            {extractDomain(item.url)}
+            {item.url}
           </Text>
           <View style={styles.historyMeta}>
             <Text style={styles.historyTime}>
@@ -79,13 +69,6 @@ export const HistoryScreen: React.FC = () => {
             )}
           </View>
         </View>
-        
-        <TouchableOpacity
-          onPress={() => handleDeleteItem(item)}
-          style={styles.deleteButton}
-        >
-          <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -103,19 +86,12 @@ export const HistoryScreen: React.FC = () => {
             <Ionicons name="trash-outline" size={24} color="#ff6b6b" />
           </TouchableOpacity>
         </View>
-        
-        <SearchInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search history..."
-          style={styles.searchInput}
-        />
       </View>
 
       <View style={styles.content}>
-        {filteredHistory.length > 0 ? (
+        {history.length > 0 ? (
           <FlatList
-            data={filteredHistory}
+            data={history}
             renderItem={renderHistoryItem}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
@@ -147,15 +123,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#ffffff',
-  },
-  searchInput: {
-    marginBottom: 16,
   },
   content: {
     flex: 1,
@@ -213,14 +185,6 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#4285f4',
     marginLeft: 4,
-  },
-  deleteButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: 'rgba(255, 107, 107, 0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   emptyState: {
     flex: 1,

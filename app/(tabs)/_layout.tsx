@@ -4,22 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 
 export default function TabLayout() {
   return (
-    <View className="flex-1 bg-background-primary">
+    <View style={{ flex: 1, backgroundColor: '#0a0b1e' }}>
       <Tabs
         screenOptions={{
           headerShown: false,
           tabBarStyle: {
-            display: 'none', // Keep hidden as requested
+            display: 'none',
           },
           tabBarActiveTintColor: '#4CAF50',
           tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.6)',
-          tabBarLabelStyle: {
-            fontSize: 12,
-            fontWeight: '600',
-          },
-          tabBarIconStyle: {
-            marginBottom: 2,
-          },
         }}>
         <Tabs.Screen
           name="index"

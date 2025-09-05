@@ -1,15 +1,50 @@
 import { create } from 'zustand';
-import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { 
-  Tab, 
-  ClosedTab, 
-  HistoryItem, 
-  BookmarkItem, 
-  DownloadItem, 
-  BrowserSettings 
-} from '../types';
-import { generateId, resolveSearchUrl, generateTabTitle } from '../lib/utils';
+import { persist, createJSONStorage } from 'zustand/middleware';
+
+export interface Tab {
+  id: string;
+  title: string;
+  url: string;
+  faviconUrl?: string;
+  createdAt: number;
+  isActive: boolean;
+}
+
+export interface ClosedTab extends Omit<Tab, 'isActive'> {
+  closedAt: number;
+}
+
+export interface HistoryItem {
+  id: string;
+  title: string;
+  url: string;
+  timestamp: number;
+  favicon?: string;
+  visitCount: number;
+}
+
+export interface BookmarkItem {
+  id: string;
+  title: string;
+  url: string;
+  favicon?: string;
+  folder: string;
+  dateAdded: number;
+  tags?: string[];
+}
+
+export interface BrowserSettings {
+  darkMode: boolean;
+  nightMode: boolean;
+  incognitoMode: boolean;
+  desktopMode: boolean;
+  adBlockEnabled: boolean;
+  searchEngine: string;
+  homepage: string;
+  autoSaveHistory: boolean;
+  maxHistoryItems: number;
+}
 
 const DEFAULT_SETTINGS: BrowserSettings = {
   darkMode: false,
@@ -24,77 +59,74 @@ const DEFAULT_SETTINGS: BrowserSettings = {
 };
 
 interface BrowserState {
-  // Settings
   settings: BrowserSettings;
-  updateSettings: (updates: Partial<BrowserSettings>) => void;
-  
-  // Tabs Management
   activeTabs: Tab[];
   closedTabs: ClosedTab[];
   currentTabId?: string;
-  
+  history: HistoryItem[];
+  bookmarks: BookmarkItem[];
+  isLoading: boolean;
+
+  // Actions
+  updateSettings: (updates: Partial<BrowserSettings>) => void;
   createNewTab: (url?: string) => string;
   closeTab: (tabId: string) => void;
-  closeAllTabs: () => void;
   restoreTab: (tabId: string) => void;
-  clearClosedTabs: () => void;
-  updateTabUrl: (tabId: string, url: string, title?: string) => void;
-  updateTabTitle: (tabId: string, title: string) => void;
-  updateTabFavicon: (tabId: string, faviconUrl: string) => void;
   setActiveTab: (tabId: string) => void;
-  getCurrentTab: () => Tab | undefined;
-  
-  // History Management
-  history: HistoryItem[];
+  updateTabUrl: (tabId: string, url: string, title?: string) => void;
   addToHistory: (item: Omit<HistoryItem, 'id' | 'timestamp' | 'visitCount'>) => void;
-  removeFromHistory: (id: string) => void;
-  clearHistory: () => void;
-  searchHistory: (query: string) => HistoryItem[];
-  
-  // Bookmarks Management
-  bookmarks: BookmarkItem[];
   addBookmark: (item: Omit<BookmarkItem, 'id' | 'dateAdded'>) => void;
   removeBookmark: (id: string) => void;
-  updateBookmark: (id: string, updates: Partial<BookmarkItem>) => void;
-  searchBookmarks: (query: string) => BookmarkItem[];
   isBookmarked: (url: string) => boolean;
-  
-  // Downloads Management
-  downloads: DownloadItem[];
-  addDownload: (item: Omit<DownloadItem, 'id' | 'dateStarted'>) => string;
-  updateDownload: (id: string, updates: Partial<DownloadItem>) => void;
-  removeDownload: (id: string) => void;
-  clearDownloads: () => void;
-  
-  // UI State
-  isLoading: boolean;
-  setLoading: (loading: boolean) => void;
-  
-  // Initialization
+  clearHistory: () => void;
   initialize: () => Promise<void>;
 }
+
+const generateId = () => `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+
+const resolveSearchUrl = (input: string, searchEngine: string = 'google'): string => {
+  const trimmed = input.trim();
+  if (!trimmed) return 'https://www.google.com';
+  
+  const urlPattern = /^(https?:\/\/)?([a-z0-9-]+\.)+[a-z]{2,}([:\/\?#].*)?$/i;
+  
+  if (urlPattern.test(trimmed)) {
+    return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+  }
+  
+  return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`;
+};
+
+const generateTabTitle = (url: string): string => {
+  if (!url || url === 'about:blank') return 'New Tab';
+  if (url.includes('google.com/search')) return 'Google Search';
+  
+  try {
+    const domain = new URL(url.startsWith('http') ? url : `https://${url}`).hostname.replace('www.', '');
+    const siteName = domain.split('.')[0];
+    return siteName.charAt(0).toUpperCase() + siteName.slice(1);
+  } catch {
+    return 'New Tab';
+  }
+};
 
 export const useBrowserStore = create<BrowserState>()(
   persist(
     (set, get) => ({
-      // Initial state
       settings: DEFAULT_SETTINGS,
       activeTabs: [],
       closedTabs: [],
       currentTabId: undefined,
       history: [],
       bookmarks: [],
-      downloads: [],
       isLoading: false,
-      
-      // Settings actions
+
       updateSettings: (updates) => {
         set((state) => ({
           settings: { ...state.settings, ...updates }
         }));
       },
-      
-      // Tabs actions
+
       createNewTab: (url) => {
         const resolvedUrl = url ? resolveSearchUrl(url, get().settings.searchEngine) : 'https://www.google.com';
         const newTab: Tab = {
@@ -112,7 +144,7 @@ export const useBrowserStore = create<BrowserState>()(
         
         return newTab.id;
       },
-      
+
       closeTab: (tabId) => {
         const state = get();
         const tabToClose = state.activeTabs.find(tab => tab.id === tabId);
@@ -136,21 +168,7 @@ export const useBrowserStore = create<BrowserState>()(
           });
         }
       },
-      
-      closeAllTabs: () => {
-        const state = get();
-        const closedTabs: ClosedTab[] = state.activeTabs.map(tab => ({
-          ...tab,
-          closedAt: Date.now(),
-        }));
-        
-        set({
-          activeTabs: [],
-          closedTabs: [...closedTabs, ...state.closedTabs].slice(0, 50),
-          currentTabId: undefined,
-        });
-      },
-      
+
       restoreTab: (tabId) => {
         const state = get();
         const tabToRestore = state.closedTabs.find(tab => tab.id === tabId);
@@ -169,11 +187,11 @@ export const useBrowserStore = create<BrowserState>()(
           }));
         }
       },
-      
-      clearClosedTabs: () => {
-        set({ closedTabs: [] });
+
+      setActiveTab: (tabId) => {
+        set({ currentTabId: tabId });
       },
-      
+
       updateTabUrl: (tabId, url, title) => {
         const resolvedUrl = resolveSearchUrl(url, get().settings.searchEngine);
         const tabTitle = title || generateTabTitle(resolvedUrl);
@@ -184,33 +202,7 @@ export const useBrowserStore = create<BrowserState>()(
           ),
         }));
       },
-      
-      updateTabTitle: (tabId, title) => {
-        set((state) => ({
-          activeTabs: state.activeTabs.map(tab =>
-            tab.id === tabId ? { ...tab, title } : tab
-          ),
-        }));
-      },
-      
-      updateTabFavicon: (tabId, faviconUrl) => {
-        set((state) => ({
-          activeTabs: state.activeTabs.map(tab =>
-            tab.id === tabId ? { ...tab, faviconUrl } : tab
-          ),
-        }));
-      },
-      
-      setActiveTab: (tabId) => {
-        set({ currentTabId: tabId });
-      },
-      
-      getCurrentTab: () => {
-        const state = get();
-        return state.activeTabs.find(tab => tab.id === state.currentTabId);
-      },
-      
-      // History actions
+
       addToHistory: (item) => {
         const state = get();
         if (!state.settings.autoSaveHistory || state.settings.incognitoMode) {
@@ -240,28 +232,7 @@ export const useBrowserStore = create<BrowserState>()(
           }));
         }
       },
-      
-      removeFromHistory: (id) => {
-        set((state) => ({
-          history: state.history.filter(item => item.id !== id),
-        }));
-      },
-      
-      clearHistory: () => {
-        set({ history: [] });
-      },
-      
-      searchHistory: (query) => {
-        const state = get();
-        const lowercaseQuery = query.toLowerCase();
-        
-        return state.history.filter(item =>
-          item.title.toLowerCase().includes(lowercaseQuery) ||
-          item.url.toLowerCase().includes(lowercaseQuery)
-        );
-      },
-      
-      // Bookmarks actions
+
       addBookmark: (item) => {
         const newBookmark: BookmarkItem = {
           ...item,
@@ -273,77 +244,22 @@ export const useBrowserStore = create<BrowserState>()(
           bookmarks: [newBookmark, ...state.bookmarks],
         }));
       },
-      
+
       removeBookmark: (id) => {
         set((state) => ({
           bookmarks: state.bookmarks.filter(item => item.id !== id),
         }));
       },
-      
-      updateBookmark: (id, updates) => {
-        set((state) => ({
-          bookmarks: state.bookmarks.map(item =>
-            item.id === id ? { ...item, ...updates } : item
-          ),
-        }));
-      },
-      
-      searchBookmarks: (query) => {
-        const state = get();
-        const lowercaseQuery = query.toLowerCase();
-        
-        return state.bookmarks.filter(item =>
-          item.title.toLowerCase().includes(lowercaseQuery) ||
-          item.url.toLowerCase().includes(lowercaseQuery) ||
-          item.folder.toLowerCase().includes(lowercaseQuery) ||
-          (item.tags && item.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
-        );
-      },
-      
+
       isBookmarked: (url) => {
         const state = get();
         return state.bookmarks.some(bookmark => bookmark.url === url);
       },
-      
-      // Downloads actions
-      addDownload: (item) => {
-        const newDownload: DownloadItem = {
-          ...item,
-          id: generateId(),
-          dateStarted: Date.now(),
-        };
-        
-        set((state) => ({
-          downloads: [newDownload, ...state.downloads],
-        }));
-        
-        return newDownload.id;
+
+      clearHistory: () => {
+        set({ history: [] });
       },
-      
-      updateDownload: (id, updates) => {
-        set((state) => ({
-          downloads: state.downloads.map(item =>
-            item.id === id ? { ...item, ...updates } : item
-          ),
-        }));
-      },
-      
-      removeDownload: (id) => {
-        set((state) => ({
-          downloads: state.downloads.filter(item => item.id !== id),
-        }));
-      },
-      
-      clearDownloads: () => {
-        set({ downloads: [] });
-      },
-      
-      // UI actions
-      setLoading: (loading) => {
-        set({ isLoading: loading });
-      },
-      
-      // Initialization
+
       initialize: async () => {
         set({ isLoading: true });
         
@@ -369,7 +285,6 @@ export const useBrowserStore = create<BrowserState>()(
         currentTabId: state.currentTabId,
         history: state.history,
         bookmarks: state.bookmarks,
-        downloads: state.downloads,
       }),
     }
   )

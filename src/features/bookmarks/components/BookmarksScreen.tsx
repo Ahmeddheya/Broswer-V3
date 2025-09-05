@@ -3,22 +3,16 @@ import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet } from 'react
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
-import { SearchInput } from '@/shared/ui/inputs/SearchInput';
 import { useBrowserStore } from '@/shared/store/browser';
-import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
-import { BookmarkItem } from '@/shared/types';
 
 export const BookmarksScreen: React.FC = () => {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedFolder, setSelectedFolder] = useState<string>('All');
-  
-  const { bookmarks, removeBookmark, searchBookmarks } = useBrowserStore();
+  const { bookmarks, removeBookmark } = useBrowserStore();
 
   const handleItemPress = (url: string) => {
-    router.replace(`/?url=${encodeURIComponent(url)}`);
+    router.replace('/(tabs)/');
   };
 
-  const handleDeleteBookmark = (item: BookmarkItem) => {
+  const handleDeleteBookmark = (item: any) => {
     Alert.alert(
       'Delete Bookmark',
       `Are you sure you want to delete "${item.title}"?`,
@@ -33,15 +27,7 @@ export const BookmarksScreen: React.FC = () => {
     );
   };
 
-  const filteredBookmarks = searchQuery 
-    ? searchBookmarks(searchQuery)
-    : selectedFolder === 'All' 
-      ? bookmarks 
-      : bookmarks.filter(bookmark => bookmark.folder === selectedFolder);
-
-  const folders = ['All', ...new Set(bookmarks.map(b => b.folder))];
-
-  const renderBookmarkItem = ({ item }: { item: BookmarkItem }) => (
+  const renderBookmarkItem = ({ item }: { item: any }) => (
     <TouchableOpacity
       onPress={() => handleItemPress(item.url)}
       style={styles.bookmarkItem}
@@ -56,16 +42,11 @@ export const BookmarksScreen: React.FC = () => {
             {item.title}
           </Text>
           <Text style={styles.bookmarkUrl} numberOfLines={1}>
-            {extractDomain(item.url)}
+            {item.url}
           </Text>
-          <View style={styles.bookmarkMeta}>
-            <Text style={styles.bookmarkFolder}>
-              {item.folder}
-            </Text>
-            <Text style={styles.bookmarkTime}>
-              • {formatTimeAgo(item.dateAdded)}
-            </Text>
-          </View>
+          <Text style={styles.bookmarkFolder}>
+            {item.folder}
+          </Text>
         </View>
         
         <TouchableOpacity
@@ -91,19 +72,12 @@ export const BookmarksScreen: React.FC = () => {
             <Ionicons name="add-circle-outline" size={24} color="#4285f4" />
           </TouchableOpacity>
         </View>
-        
-        <SearchInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder="Search bookmarks..."
-          style={styles.searchInput}
-        />
       </View>
 
       <View style={styles.content}>
-        {filteredBookmarks.length > 0 ? (
+        {bookmarks.length > 0 ? (
           <FlatList
-            data={filteredBookmarks}
+            data={bookmarks}
             renderItem={renderBookmarkItem}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
@@ -135,15 +109,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: 'bold',
     color: '#ffffff',
-  },
-  searchInput: {
-    marginBottom: 16,
   },
   content: {
     flex: 1,
@@ -189,19 +159,10 @@ const styles = StyleSheet.create({
     color: 'rgba(255, 255, 255, 0.7)',
     marginBottom: 4,
   },
-  bookmarkMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   bookmarkFolder: {
     fontSize: 12,
     color: '#4285f4',
     fontWeight: '500',
-  },
-  bookmarkTime: {
-    fontSize: 12,
-    color: 'rgba(255, 255, 255, 0.5)',
-    marginLeft: 4,
   },
   deleteButton: {
     width: 36,

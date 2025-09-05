@@ -1,13 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Alert, StyleSheet, BackHandler } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Dimensions, Alert } from 'react-native';
 import { WebView, WebViewNavigation } from 'react-native-webview';
 import { Ionicons } from '@expo/vector-icons';
-import { router, useFocusEffect } from 'expo-router';
+import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
-import { SearchInput } from '@/shared/ui/inputs/SearchInput';
-import { Button } from '@/shared/ui/buttons/Button';
 import { useBrowserStore } from '@/shared/store/browser';
-import { resolveSearchUrl, generateTabTitle } from '@/shared/lib/utils';
+
+const { width: screenWidth } = Dimensions.get('window');
 
 const QUICK_ACCESS_SITES = [
   { name: 'Google', url: 'https://google.com', icon: 'search', color: '#4285f4' },
@@ -28,18 +27,13 @@ export const BrowserScreen: React.FC = () => {
   const [canGoBack, setCanGoBack] = useState(false);
   const [canGoForward, setCanGoForward] = useState(false);
   const [isHomePage, setIsHomePage] = useState(true);
-  const [showFindModal, setShowFindModal] = useState(false);
-  const [showMenuModal, setShowMenuModal] = useState(false);
-  const [findText, setFindText] = useState('');
   
   const { 
     settings,
     currentTabId,
     activeTabs,
-    getCurrentTab,
     createNewTab,
     updateTabUrl,
-    updateTabTitle,
     addToHistory,
     addBookmark,
     isBookmarked,
@@ -47,44 +41,23 @@ export const BrowserScreen: React.FC = () => {
     updateSettings,
   } = useBrowserStore();
 
-  // Handle URL parameter from navigation
-  useEffect(() => {
-    const handleUrlParam = () => {
-      try {
-        if (typeof window !== 'undefined') {
-          const params = new URLSearchParams(window.location.search);
-          const paramUrl = params.get('url');
-          if (paramUrl) {
-            const decodedUrl = decodeURIComponent(paramUrl);
-            setUrl(decodedUrl);
-            setCurrentUrl(decodedUrl);
-            setIsHomePage(false);
-          }
-        }
-      } catch (error) {
-        console.warn('Error handling URL parameter:', error);
-      }
-    };
-    
-    handleUrlParam();
-  }, []);
-
   const handleSearch = () => {
     if (!url.trim()) return;
     
-    const resolvedUrl = resolveSearchUrl(url, settings.searchEngine);
+    const resolvedUrl = url.includes('.') || url.startsWith('http') 
+      ? (url.startsWith('http') ? url : `https://${url}`)
+      : `https://www.google.com/search?q=${encodeURIComponent(url)}`;
+    
     setCurrentUrl(resolvedUrl);
     setIsHomePage(false);
     
-    // Update current tab URL
     if (currentTabId) {
       updateTabUrl(currentTabId, resolvedUrl);
     }
     
-    // Add to history if not in incognito mode
     if (!settings.incognitoMode) {
       addToHistory({
-        title: generateTabTitle(resolvedUrl),
+        title: url.includes('.') ? url : `Search: ${url}`,
         url: resolvedUrl,
         favicon: undefined,
       });
@@ -99,11 +72,6 @@ export const BrowserScreen: React.FC = () => {
     setIsLoading(navState.loading);
     setCanGoBack(navState.canGoBack);
     setCanGoForward(navState.canGoForward);
-    
-    // Update tab title when page loads
-    if (!navState.loading && navState.title && currentTabId) {
-      updateTabTitle(currentTabId, navState.title);
-    }
   };
 
   const handleNewTab = () => {
@@ -139,19 +107,8 @@ export const BrowserScreen: React.FC = () => {
     router.push('/(tabs)/tabs');
   };
 
-  const openMenu = () => {
-    setShowMenuModal(true);
-  };
-
-  const handleFindInPage = () => {
-    setShowFindModal(true);
-  };
-
   const handleBookmarkToggle = () => {
     if (!currentUrl) return;
-    
-    const currentTab = getCurrentTab();
-    if (!currentTab) return;
     
     if (isBookmarked(currentUrl)) {
       const bookmark = useBrowserStore.getState().bookmarks.find(b => b.url === currentUrl);
@@ -161,10 +118,10 @@ export const BrowserScreen: React.FC = () => {
       }
     } else {
       addBookmark({
-        title: currentTab.title,
+        title: url || 'New Bookmark',
         url: currentUrl,
         folder: 'Default',
-        favicon: currentTab.faviconUrl,
+        favicon: undefined,
       });
       Alert.alert('Bookmark Added', 'Bookmark has been added');
     }
@@ -175,47 +132,6 @@ export const BrowserScreen: React.FC = () => {
     setUrl(siteUrl);
     setIsHomePage(false);
   };
-
-  const handleFindInPageSearch = () => {
-    if (findText.trim() && webViewRef.current) {
-      const script = `
-        if (window.find) {
-          window.find('${findText}', false, false, true, false, true, false);
-        }
-        true;
-      `;
-      webViewRef.current.injectJavaScript(script);
-    }
-  };
-
-  const handleClearFind = () => {
-    if (webViewRef.current) {
-      const script = `
-        if (window.getSelection) {
-          window.getSelection().removeAllRanges();
-        }
-        true;
-      `;
-      webViewRef.current.injectJavaScript(script);
-    }
-    setFindText('');
-  };
-
-  // Handle Android back button
-  useFocusEffect(
-    React.useCallback(() => {
-      const onBackPress = () => {
-        if (canGoBack && !isHomePage) {
-          goBack();
-          return true;
-        }
-        return false;
-      };
-
-      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-      return () => subscription.remove();
-    }, [canGoBack, isHomePage])
-  );
 
   if (isHomePage) {
     return (
@@ -245,13 +161,20 @@ export const BrowserScreen: React.FC = () => {
         <View style={styles.content}>
           {/* Search Bar */}
           <View style={styles.searchContainer}>
-            <SearchInput
-              value={url}
-              onChangeText={setUrl}
-              onSubmit={handleSearch}
-              placeholder="Search Google or type a URL"
-              autoFocus={false}
-            />
+            <View style={styles.searchInputContainer}>
+              <Ionicons name="search" size={20} color="rgba(255, 255, 255, 0.6)" style={styles.searchIcon} />
+              <Text
+                style={styles.searchInput}
+                onPress={() => {
+                  // In a real implementation, this would open a text input modal
+                  const searchTerm = 'google.com'; // Placeholder
+                  setUrl(searchTerm);
+                  handleSearch();
+                }}
+              >
+                Search Google or type a URL
+              </Text>
+            </View>
           </View>
 
           {/* Quick Access Grid */}
@@ -326,7 +249,7 @@ export const BrowserScreen: React.FC = () => {
             )}
           </TouchableOpacity>
 
-          <TouchableOpacity onPress={openMenu} style={styles.navButton}>
+          <TouchableOpacity onPress={() => router.push('/(tabs)/settings')} style={styles.navButton}>
             <Ionicons name="menu" size={24} color="#ffffff" />
           </TouchableOpacity>
         </View>
@@ -339,7 +262,6 @@ export const BrowserScreen: React.FC = () => {
       {/* Browser Header with URL Bar */}
       <View style={styles.browserHeader}>
         <View style={styles.browserHeaderContent}>
-          {/* Navigation Buttons */}
           <TouchableOpacity
             onPress={goBack}
             disabled={!canGoBack}
@@ -368,16 +290,17 @@ export const BrowserScreen: React.FC = () => {
             <Ionicons name="refresh" size={20} color="#ffffff" />
           </TouchableOpacity>
 
-          {/* URL Bar */}
           <View style={styles.urlBarContainer}>
-            <SearchInput
-              value={url}
-              onChangeText={setUrl}
-              onSubmit={handleSearch}
-              placeholder="Search Google or type a URL"
-              leftIcon={url.startsWith('https') ? 'lock-closed' : 'globe-outline'}
-              style={styles.urlBar}
-            />
+            <View style={styles.urlBar}>
+              <Ionicons 
+                name={url.startsWith('https') ? 'lock-closed' : 'globe-outline'} 
+                size={16} 
+                color="rgba(255, 255, 255, 0.6)" 
+              />
+              <Text style={styles.urlText} numberOfLines={1}>
+                {url || 'Search Google or type a URL'}
+              </Text>
+            </View>
           </View>
           
           <TouchableOpacity onPress={handleBookmarkToggle} style={styles.browserNavButton}>
@@ -395,7 +318,6 @@ export const BrowserScreen: React.FC = () => {
       </View>
       
       <View style={styles.webViewContainer}>
-        {/* Loading Indicator */}
         {isLoading && (
           <View style={styles.loadingIndicator}>
             <View style={styles.loadingBar} />
@@ -424,43 +346,6 @@ export const BrowserScreen: React.FC = () => {
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36' : 
             undefined
           }
-          injectedJavaScript={`
-            // Night mode CSS injection
-            ${settings.nightMode ? `
-              (function() {
-                const style = document.createElement('style');
-                style.textContent = \`
-                  * {
-                    filter: invert(1) hue-rotate(180deg) !important;
-                  }
-                  img, video {
-                    filter: invert(1) hue-rotate(180deg) !important;
-                  }
-                \`;
-                document.head.appendChild(style);
-              })();
-            ` : ''}
-            
-            // Ad blocking (basic)
-            ${settings.adBlockEnabled ? `
-              (function() {
-                const adSelectors = [
-                  '[class*="ad"]',
-                  '[id*="ad"]',
-                  '.advertisement',
-                  '.banner',
-                  '.popup'
-                ];
-                
-                adSelectors.forEach(selector => {
-                  const elements = document.querySelectorAll(selector);
-                  elements.forEach(el => el.style.display = 'none');
-                });
-              })();
-            ` : ''}
-            
-            true;
-          `}
         />
       </View>
 
@@ -512,130 +397,10 @@ export const BrowserScreen: React.FC = () => {
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={openMenu} style={styles.navButton}>
+        <TouchableOpacity onPress={() => router.push('/(tabs)/settings')} style={styles.navButton}>
           <Ionicons name="menu" size={24} color="#ffffff" />
         </TouchableOpacity>
       </View>
-
-      {/* Find in Page Modal */}
-      {showFindModal && (
-        <View style={styles.findModal}>
-          <View style={styles.findModalContent}>
-            <Text style={styles.findModalTitle}>Find in Page</Text>
-            <SearchInput
-              value={findText}
-              onChangeText={setFindText}
-              placeholder="Search in page..."
-              autoFocus
-              style={styles.findInput}
-            />
-            <View style={styles.findButtons}>
-              <Button
-                title="Search"
-                onPress={handleFindInPageSearch}
-                disabled={!findText.trim()}
-                style={styles.findButton}
-              />
-              <Button
-                title="Clear"
-                onPress={handleClearFind}
-                variant="outline"
-                style={styles.findButton}
-              />
-              <Button
-                title="Close"
-                onPress={() => setShowFindModal(false)}
-                variant="ghost"
-                style={styles.findButton}
-              />
-            </View>
-          </View>
-        </View>
-      )}
-
-      {/* Menu Modal */}
-      {showMenuModal && (
-        <View style={styles.menuModal}>
-          <View style={styles.menuModalContent}>
-            <View style={styles.menuHeader}>
-              <Text style={styles.menuTitle}>Browser Menu</Text>
-              <TouchableOpacity onPress={() => setShowMenuModal(false)}>
-                <Ionicons name="close" size={24} color="#ffffff" />
-              </TouchableOpacity>
-            </View>
-            
-            <TouchableOpacity 
-              onPress={handleBookmarkToggle}
-              style={styles.menuItem}
-            >
-              <Ionicons 
-                name={isBookmarked(currentUrl) ? 'bookmark' : 'bookmark-outline'} 
-                size={20} 
-                color={isBookmarked(currentUrl) ? '#4CAF50' : '#ffffff'} 
-              />
-              <Text style={styles.menuItemText}>
-                {isBookmarked(currentUrl) ? 'Remove Bookmark' : 'Add Bookmark'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => {
-                setShowMenuModal(false);
-                handleFindInPage();
-              }}
-              style={styles.menuItem}
-            >
-              <Ionicons name="search" size={20} color="#ffffff" />
-              <Text style={styles.menuItemText}>Find in Page</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => {
-                updateSettings({ desktopMode: !settings.desktopMode });
-                setShowMenuModal(false);
-              }}
-              style={styles.menuItem}
-            >
-              <Ionicons 
-                name={settings.desktopMode ? 'phone-portrait' : 'desktop'} 
-                size={20} 
-                color="#ffffff" 
-              />
-              <Text style={styles.menuItemText}>
-                {settings.desktopMode ? 'Mobile Site' : 'Desktop Site'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => {
-                updateSettings({ nightMode: !settings.nightMode });
-                setShowMenuModal(false);
-              }}
-              style={styles.menuItem}
-            >
-              <Ionicons 
-                name={settings.nightMode ? 'sunny' : 'moon'} 
-                size={20} 
-                color="#ffffff" 
-              />
-              <Text style={styles.menuItemText}>
-                {settings.nightMode ? 'Day Mode' : 'Night Mode'}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              onPress={() => {
-                setShowMenuModal(false);
-                router.push('/(tabs)/settings');
-              }}
-              style={styles.menuItem}
-            >
-              <Ionicons name="settings-outline" size={20} color="#ffffff" />
-              <Text style={styles.menuItemText}>Settings</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      )}
     </ScreenLayout>
   );
 };
@@ -689,6 +454,25 @@ const styles = StyleSheet.create({
   searchContainer: {
     marginTop: 24,
     marginBottom: 32,
+  },
+  searchInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minHeight: 52,
+  },
+  searchIcon: {
+    marginRight: 12,
+  },
+  searchInput: {
+    flex: 1,
+    color: 'rgba(255, 255, 255, 0.6)',
+    fontSize: 16,
   },
   sectionTitle: {
     fontSize: 18,
@@ -746,7 +530,19 @@ const styles = StyleSheet.create({
     marginHorizontal: 12,
   },
   urlBar: {
-    minHeight: 40,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+  },
+  urlText: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 14,
+    marginLeft: 8,
   },
   webViewContainer: {
     flex: 1,
@@ -806,77 +602,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 12,
     fontWeight: 'bold',
-  },
-  findModal: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  findModalContent: {
-    backgroundColor: '#1a1b3a',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  findModalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    marginBottom: 16,
-  },
-  findInput: {
-    marginBottom: 16,
-  },
-  findButtons: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  findButton: {
-    flex: 1,
-  },
-  menuModal: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'flex-end',
-  },
-  menuModalContent: {
-    backgroundColor: '#1a1b3a',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.1)',
-  },
-  menuHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 24,
-  },
-  menuTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#ffffff',
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: 16,
-    paddingHorizontal: 8,
-    borderRadius: 8,
-  },
-  menuItemText: {
-    color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '500',
-    marginLeft: 16,
   },
 });

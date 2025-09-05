@@ -6,20 +6,7 @@ import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
 import { useBrowserStore } from '@/shared/store/browser';
 
 export const SettingsScreen: React.FC = () => {
-  const { settings, updateSettings, clearHistory, clearDownloads } = useBrowserStore();
-
-  const handleClearData = (type: 'history' | 'downloads' | 'all') => {
-    const actions = {
-      history: () => clearHistory(),
-      downloads: () => clearDownloads(),
-      all: () => {
-        clearHistory();
-        clearDownloads();
-      },
-    };
-    
-    actions[type]();
-  };
+  const { settings, updateSettings, clearHistory } = useBrowserStore();
 
   const SettingsItem = ({ 
     icon, 
@@ -184,21 +171,7 @@ export const SettingsScreen: React.FC = () => {
             icon="trash-outline"
             title="Clear History"
             subtitle="Remove all browsing history"
-            onPress={() => handleClearData('history')}
-            destructive
-          />
-          <SettingsItem
-            icon="download-outline"
-            title="Clear Downloads"
-            subtitle="Remove all download records"
-            onPress={() => handleClearData('downloads')}
-            destructive
-          />
-          <SettingsItem
-            icon="nuclear-outline"
-            title="Clear All Data"
-            subtitle="Reset all browser data"
-            onPress={() => handleClearData('all')}
+            onPress={() => clearHistory()}
             destructive
           />
         </SettingsSection>
