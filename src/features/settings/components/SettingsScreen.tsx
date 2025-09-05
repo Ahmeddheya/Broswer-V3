@@ -1,17 +1,12 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, ScrollView, StyleSheet, Switch } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
 import { useBrowserStore } from '@/shared/store/browser';
-import { useAuthStore } from '@/shared/store/auth';
-import { SettingsSection } from './SettingsSection';
-import { SettingsItem } from './SettingsItem';
-import { UserProfile } from './UserProfile';
 
 export const SettingsScreen: React.FC = () => {
   const { settings, updateSettings, clearHistory, clearDownloads } = useBrowserStore();
-  const { user, logout } = useAuthStore();
 
   const handleClearData = (type: 'history' | 'downloads' | 'all') => {
     const actions = {
@@ -26,49 +21,104 @@ export const SettingsScreen: React.FC = () => {
     actions[type]();
   };
 
+  const SettingsItem = ({ 
+    icon, 
+    title, 
+    subtitle, 
+    value, 
+    onToggle, 
+    onPress, 
+    type = 'button',
+    destructive = false 
+  }: {
+    icon: keyof typeof Ionicons.glyphMap;
+    title: string;
+    subtitle?: string;
+    value?: boolean;
+    onToggle?: (value: boolean) => void;
+    onPress?: () => void;
+    type?: 'switch' | 'button';
+    destructive?: boolean;
+  }) => (
+    <TouchableOpacity
+      onPress={type === 'button' ? onPress : undefined}
+      style={styles.settingsItem}
+    >
+      <View style={[
+        styles.settingsIcon,
+        destructive && styles.destructiveIcon,
+        value && type === 'switch' && styles.activeIcon
+      ]}>
+        <Ionicons 
+          name={icon} 
+          size={20} 
+          color={destructive ? '#ff6b6b' : value && type === 'switch' ? '#4CAF50' : '#4285f4'} 
+        />
+      </View>
+      
+      <View style={styles.settingsContent}>
+        <Text style={[styles.settingsTitle, destructive && styles.destructiveText]}>
+          {title}
+        </Text>
+        {subtitle && (
+          <Text style={styles.settingsSubtitle}>
+            {subtitle}
+          </Text>
+        )}
+      </View>
+
+      {type === 'switch' && onToggle && (
+        <Switch
+          value={value}
+          onValueChange={onToggle}
+          trackColor={{ false: '#333', true: '#4CAF50' }}
+          thumbColor={value ? '#ffffff' : '#666'}
+          ios_backgroundColor="#333"
+        />
+      )}
+
+      {type === 'button' && (
+        <Ionicons name="chevron-forward" size={18} color="#666" />
+      )}
+    </TouchableOpacity>
+  );
+
+  const SettingsSection = ({ title, children }: { title: string; children: React.ReactNode }) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      <View style={styles.sectionContent}>
+        {children}
+      </View>
+    </View>
+  );
+
   return (
     <ScreenLayout>
       {/* Header */}
-      <View className="px-5 py-4 pt-12 border-b border-white/10">
-        <View className="flex-row items-center justify-between">
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-white">Settings</Text>
-          <TouchableOpacity onPress={() => router.push('/(tabs)/settings/about')}>
-            <Ionicons name="information-circle-outline" size={24} color="#ffffff" />
-          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Settings</Text>
+          <View style={styles.headerSpacer} />
         </View>
       </View>
 
-      <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-        {/* User Profile */}
-        {user && (
-          <UserProfile user={user} onEditProfile={() => router.push('/(tabs)/settings/profile')} />
-        )}
-
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* General Settings */}
         <SettingsSection title="General">
           <SettingsItem
             icon="search-outline"
             title="Search Engine"
             subtitle={settings.searchEngine.charAt(0).toUpperCase() + settings.searchEngine.slice(1)}
-            onPress={() => router.push('/(tabs)/settings/search-engine')}
-            showArrow
+            onPress={() => console.log('Search engine settings')}
           />
           <SettingsItem
             icon="home-outline"
             title="Homepage"
             subtitle={settings.homepage}
-            onPress={() => router.push('/(tabs)/settings/homepage')}
-            showArrow
-          />
-          <SettingsItem
-            icon="language-outline"
-            title="Language"
-            subtitle="English"
-            onPress={() => router.push('/(tabs)/settings/language')}
-            showArrow
+            onPress={() => console.log('Homepage settings')}
           />
         </SettingsSection>
 
@@ -98,13 +148,6 @@ export const SettingsScreen: React.FC = () => {
             onToggle={(value) => updateSettings({ autoSaveHistory: value })}
             type="switch"
           />
-          <SettingsItem
-            icon="key-outline"
-            title="Password Manager"
-            subtitle="Manage saved passwords"
-            onPress={() => router.push('/(tabs)/settings/passwords')}
-            showArrow
-          />
         </SettingsSection>
 
         {/* Appearance */}
@@ -133,13 +176,6 @@ export const SettingsScreen: React.FC = () => {
             onToggle={(value) => updateSettings({ desktopMode: value })}
             type="switch"
           />
-          <SettingsItem
-            icon="color-palette-outline"
-            title="Theme"
-            subtitle="Customize app appearance"
-            onPress={() => router.push('/(tabs)/settings/theme')}
-            showArrow
-          />
         </SettingsSection>
 
         {/* Data Management */}
@@ -165,72 +201,139 @@ export const SettingsScreen: React.FC = () => {
             onPress={() => handleClearData('all')}
             destructive
           />
-          <SettingsItem
-            icon="cloud-upload-outline"
-            title="Sync Settings"
-            subtitle="Backup and sync your data"
-            onPress={() => router.push('/(tabs)/settings/sync')}
-            showArrow
-          />
         </SettingsSection>
-
-        {/* Advanced */}
-        <SettingsSection title="Advanced">
-          <SettingsItem
-            icon="code-outline"
-            title="Developer Tools"
-            subtitle="Debug and development options"
-            onPress={() => router.push('/(tabs)/settings/developer')}
-            showArrow
-          />
-          <SettingsItem
-            icon="bug-outline"
-            title="Report Issue"
-            subtitle="Send feedback or report bugs"
-            onPress={() => router.push('/(tabs)/settings/feedback')}
-            showArrow
-          />
-          <SettingsItem
-            icon="document-text-outline"
-            title="Privacy Policy"
-            subtitle="Read our privacy policy"
-            onPress={() => router.push('/(tabs)/settings/privacy-policy')}
-            showArrow
-          />
-          <SettingsItem
-            icon="document-outline"
-            title="Terms of Service"
-            subtitle="Read terms and conditions"
-            onPress={() => router.push('/(tabs)/settings/terms')}
-            showArrow
-          />
-        </SettingsSection>
-
-        {/* Account */}
-        {user && (
-          <SettingsSection title="Account">
-            <SettingsItem
-              icon="log-out-outline"
-              title="Sign Out"
-              subtitle="Sign out of your account"
-              onPress={() => logout()}
-              destructive
-            />
-          </SettingsSection>
-        )}
 
         {/* App Info */}
-        <View className="bg-white/5 rounded-2xl p-6 mx-5 mb-8 border border-white/10 items-center">
-          <View className="w-16 h-16 rounded-full bg-primary-500/20 items-center justify-center mb-4">
+        <View style={styles.appInfo}>
+          <View style={styles.appIcon}>
             <Ionicons name="globe" size={32} color="#4285f4" />
           </View>
-          <Text className="text-xl font-bold text-white mb-2">Aura Browser</Text>
-          <Text className="text-sm text-white/60 mb-4">Version 1.0.0</Text>
-          <Text className="text-sm text-white/70 text-center leading-5">
-            Fast, secure browser with advanced privacy features and smooth browsing experience
+          <Text style={styles.appName}>Aura Browser</Text>
+          <Text style={styles.appVersion}>Version 1.0.0</Text>
+          <Text style={styles.appDescription}>
+            Fast, secure browser with advanced privacy features
           </Text>
         </View>
       </ScrollView>
     </ScreenLayout>
   );
 };
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  headerSpacer: {
+    width: 24,
+  },
+  content: {
+    flex: 1,
+  },
+  section: {
+    marginHorizontal: 20,
+    marginBottom: 32,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#4285f4',
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    marginBottom: 16,
+    paddingHorizontal: 8,
+  },
+  sectionContent: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    overflow: 'hidden',
+  },
+  settingsItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+  },
+  settingsIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(66, 133, 244, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 16,
+  },
+  destructiveIcon: {
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+  },
+  activeIcon: {
+    backgroundColor: 'rgba(76, 175, 80, 0.2)',
+  },
+  settingsContent: {
+    flex: 1,
+  },
+  settingsTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  destructiveText: {
+    color: '#ff6b6b',
+  },
+  settingsSubtitle: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+  },
+  appInfo: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 16,
+    padding: 24,
+    marginHorizontal: 20,
+    marginBottom: 32,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+    alignItems: 'center',
+  },
+  appIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(66, 133, 244, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  appName: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginBottom: 8,
+  },
+  appVersion: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.6)',
+    marginBottom: 16,
+  },
+  appDescription: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
+});

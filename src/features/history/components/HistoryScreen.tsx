@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
@@ -7,12 +7,9 @@ import { SearchInput } from '@/shared/ui/inputs/SearchInput';
 import { useBrowserStore } from '@/shared/store/browser';
 import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
 import { HistoryItem } from '@/shared/types';
-import { HistoryGroupedList } from './HistoryGroupedList';
-import { HistoryStats } from './HistoryStats';
 
 export const HistoryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
-  const [viewMode, setViewMode] = useState<'list' | 'grouped'>('grouped');
   
   const { history, removeFromHistory, clearHistory, searchHistory } = useBrowserStore();
 
@@ -22,12 +19,12 @@ export const HistoryScreen: React.FC = () => {
 
   const handleDeleteItem = (item: HistoryItem) => {
     Alert.alert(
-      'حذف من التاريخ',
-      `هل تريد حذف "${item.title}" من التاريخ؟`,
+      'Delete from History',
+      `Are you sure you want to delete "${item.title}" from history?`,
       [
-        { text: 'إلغاء', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'حذف',
+          text: 'Delete',
           style: 'destructive',
           onPress: () => removeFromHistory(item.id),
         },
@@ -57,27 +54,27 @@ export const HistoryScreen: React.FC = () => {
   const renderHistoryItem = ({ item }: { item: HistoryItem }) => (
     <TouchableOpacity
       onPress={() => handleItemPress(item.url)}
-      className="bg-white/5 rounded-xl p-4 mb-3 border border-white/10"
+      style={styles.historyItem}
     >
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-full bg-primary-500/20 items-center justify-center mr-3">
+      <View style={styles.historyContent}>
+        <View style={styles.historyIcon}>
           <Ionicons name="globe-outline" size={20} color="#4285f4" />
         </View>
         
-        <View className="flex-1 mr-3">
-          <Text className="text-base font-semibold text-white" numberOfLines={1}>
+        <View style={styles.historyInfo}>
+          <Text style={styles.historyTitle} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text className="text-sm text-white/70" numberOfLines={1}>
+          <Text style={styles.historyUrl} numberOfLines={1}>
             {extractDomain(item.url)}
           </Text>
-          <View className="flex-row items-center mt-1">
-            <Text className="text-xs text-white/50">
+          <View style={styles.historyMeta}>
+            <Text style={styles.historyTime}>
               {formatTimeAgo(item.timestamp)}
             </Text>
             {item.visitCount > 1 && (
-              <Text className="text-xs text-primary-400 ml-2">
-                • {item.visitCount} زيارة
+              <Text style={styles.historyVisits}>
+                • {item.visitCount} visits
               </Text>
             )}
           </View>
@@ -85,7 +82,7 @@ export const HistoryScreen: React.FC = () => {
         
         <TouchableOpacity
           onPress={() => handleDeleteItem(item)}
-          className="w-9 h-9 rounded-full bg-red-500/20 items-center justify-center"
+          style={styles.deleteButton}
         >
           <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
         </TouchableOpacity>
@@ -96,30 +93,14 @@ export const HistoryScreen: React.FC = () => {
   return (
     <ScreenLayout>
       {/* Header */}
-      <View className="px-5 py-4 pt-12 border-b border-white/10">
-        <View className="flex-row items-center justify-between mb-4">
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-white">History</Text>
-          <View className="flex-row items-center space-x-2">
-            <TouchableOpacity 
-              onPress={() => setViewMode(viewMode === 'list' ? 'grouped' : 'list')}
-              className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
-            >
-              <Ionicons 
-                name={viewMode === 'list' ? 'list' : 'grid'} 
-                size={20} 
-                color="#ffffff" 
-              />
-            </TouchableOpacity>
-            <TouchableOpacity 
-              onPress={handleClearHistory}
-              className="w-10 h-10 rounded-full bg-red-500/20 items-center justify-center"
-            >
-              <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
-            </TouchableOpacity>
-          </View>
+          <Text style={styles.headerTitle}>History</Text>
+          <TouchableOpacity onPress={handleClearHistory}>
+            <Ionicons name="trash-outline" size={24} color="#ff6b6b" />
           </TouchableOpacity>
         </View>
         
@@ -127,38 +108,24 @@ export const HistoryScreen: React.FC = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search history..."
+          style={styles.searchInput}
         />
       </View>
 
-      <View className="flex-1 px-5 pt-4">
-        {/* Stats */}
-        {!searchQuery && (
-          <HistoryStats history={history} />
-        )}
-        
+      <View style={styles.content}>
         {filteredHistory.length > 0 ? (
-          viewMode === 'grouped' ? (
-            <HistoryGroupedList 
-              history={filteredHistory}
-              onItemPress={handleItemPress}
-              onDeleteItem={handleDeleteItem}
-            />
-          ) : (
-            <FlatList
-              data={filteredHistory}
-              renderItem={renderHistoryItem}
-              keyExtractor={item => item.id}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 20 }}
-            />
-          )
+          <FlatList
+            data={filteredHistory}
+            renderItem={renderHistoryItem}
+            keyExtractor={item => item.id}
+            showsVerticalScrollIndicator={false}
+            contentContainerStyle={styles.listContent}
+          />
         ) : (
-          <View className="flex-1 items-center justify-center px-10">
+          <View style={styles.emptyState}>
             <Ionicons name="time-outline" size={64} color="#666" />
-            <Text className="text-xl font-bold text-white mt-4 mb-2 text-center">
-              No History
-            </Text>
-            <Text className="text-base text-white/60 text-center leading-6">
+            <Text style={styles.emptyTitle}>No History</Text>
+            <Text style={styles.emptySubtitle}>
               Your browsing history will appear here
             </Text>
           </View>
@@ -167,3 +134,112 @@ export const HistoryScreen: React.FC = () => {
     </ScreenLayout>
   );
 };
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  searchInput: {
+    marginBottom: 16,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  historyItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  historyContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(66, 133, 244, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  historyInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  historyTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  historyUrl: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
+  },
+  historyMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  historyTime: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+  },
+  historyVisits: {
+    fontSize: 12,
+    color: '#4285f4',
+    marginLeft: 4,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});

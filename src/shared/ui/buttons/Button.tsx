@@ -1,7 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, Text, ActivityIndicator, View } from 'react-native';
+import { TouchableOpacity, Text, ActivityIndicator, View, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { cn } from '@/shared/lib/utils';
 
 interface ButtonProps {
   title: string;
@@ -13,8 +12,8 @@ interface ButtonProps {
   icon?: React.ReactNode;
   iconPosition?: 'left' | 'right';
   gradient?: boolean;
-  className?: string;
-  textClassName?: string;
+  style?: any;
+  textStyle?: any;
 }
 
 export const Button: React.FC<ButtonProps> = ({
@@ -27,63 +26,36 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   iconPosition = 'left',
   gradient = false,
-  className,
-  textClassName,
+  style,
+  textStyle,
 }) => {
-  const baseClasses = 'rounded-xl items-center justify-center flex-row';
-  
-  const sizeClasses = {
-    sm: 'px-3 py-2 min-h-[36px]',
-    md: 'px-4 py-3 min-h-[44px]',
-    lg: 'px-6 py-4 min-h-[52px]',
-  };
-  
-  const variantClasses = {
-    primary: 'bg-primary-500',
-    secondary: 'bg-secondary-500',
-    outline: 'border-2 border-primary-500 bg-transparent',
-    ghost: 'bg-transparent',
-  };
-  
-  const textSizeClasses = {
-    sm: 'text-sm',
-    md: 'text-base',
-    lg: 'text-lg',
-  };
-  
-  const textVariantClasses = {
-    primary: 'text-white font-semibold',
-    secondary: 'text-white font-semibold',
-    outline: 'text-primary-500 font-semibold',
-    ghost: 'text-primary-500 font-medium',
-  };
-
   const isDisabled = disabled || loading;
 
   const buttonContent = (
-    <View className="flex-row items-center justify-center">
+    <View style={styles.buttonContent}>
       {loading && (
         <ActivityIndicator 
           size="small" 
           color={variant === 'outline' || variant === 'ghost' ? '#4285f4' : '#ffffff'} 
-          className="mr-2"
+          style={styles.loadingIndicator}
         />
       )}
       {icon && iconPosition === 'left' && !loading && (
-        <View className="mr-2">{icon}</View>
+        <View style={styles.iconLeft}>{icon}</View>
       )}
       <Text 
-        className={cn(
-          textSizeClasses[size],
-          textVariantClasses[variant],
-          isDisabled && 'opacity-50',
-          textClassName
-        )}
+        style={[
+          styles.text,
+          styles[`text${size.charAt(0).toUpperCase() + size.slice(1)}` as keyof typeof styles],
+          styles[`text${variant.charAt(0).toUpperCase() + variant.slice(1)}` as keyof typeof styles],
+          isDisabled && styles.textDisabled,
+          textStyle
+        ]}
       >
         {title}
       </Text>
       {icon && iconPosition === 'right' && !loading && (
-        <View className="ml-2">{icon}</View>
+        <View style={styles.iconRight}>{icon}</View>
       )}
     </View>
   );
@@ -94,11 +66,16 @@ export const Button: React.FC<ButtonProps> = ({
         onPress={onPress}
         disabled={isDisabled}
         activeOpacity={0.8}
-        className={cn(baseClasses, sizeClasses[size], isDisabled && 'opacity-50', className)}
+        style={[
+          styles.button,
+          styles[size],
+          isDisabled && styles.disabled,
+          style
+        ]}
       >
         <LinearGradient
           colors={['#4285f4', '#5a95f5']}
-          className={cn('absolute inset-0 rounded-xl')}
+          style={styles.gradient}
         />
         {buttonContent}
       </TouchableOpacity>
@@ -110,15 +87,105 @@ export const Button: React.FC<ButtonProps> = ({
       onPress={onPress}
       disabled={isDisabled}
       activeOpacity={0.8}
-      className={cn(
-        baseClasses,
-        sizeClasses[size],
-        variantClasses[variant],
-        isDisabled && 'opacity-50',
-        className
-      )}
+      style={[
+        styles.button,
+        styles[size],
+        styles[variant],
+        isDisabled && styles.disabled,
+        style
+      ]}
     >
       {buttonContent}
     </TouchableOpacity>
   );
 };
+
+const styles = StyleSheet.create({
+  button: {
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+  },
+  sm: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minHeight: 36,
+  },
+  md: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    minHeight: 44,
+  },
+  lg: {
+    paddingHorizontal: 24,
+    paddingVertical: 16,
+    minHeight: 52,
+  },
+  primary: {
+    backgroundColor: '#4285f4',
+  },
+  secondary: {
+    backgroundColor: '#ff9800',
+  },
+  outline: {
+    borderWidth: 2,
+    borderColor: '#4285f4',
+    backgroundColor: 'transparent',
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+  },
+  disabled: {
+    opacity: 0.5,
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    borderRadius: 12,
+  },
+  buttonContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  loadingIndicator: {
+    marginRight: 8,
+  },
+  iconLeft: {
+    marginRight: 8,
+  },
+  iconRight: {
+    marginLeft: 8,
+  },
+  text: {
+    fontWeight: '600',
+  },
+  textSm: {
+    fontSize: 14,
+  },
+  textMd: {
+    fontSize: 16,
+  },
+  textLg: {
+    fontSize: 18,
+  },
+  textPrimary: {
+    color: '#ffffff',
+  },
+  textSecondary: {
+    color: '#ffffff',
+  },
+  textOutline: {
+    color: '#4285f4',
+  },
+  textGhost: {
+    color: '#4285f4',
+  },
+  textDisabled: {
+    opacity: 0.5,
+  },
+});

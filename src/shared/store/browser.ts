@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
-import { MMKV } from 'react-native-mmkv';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { 
   Tab, 
   ClosedTab, 
@@ -9,23 +9,18 @@ import {
   DownloadItem, 
   BrowserSettings 
 } from '../types';
-import { DEFAULT_SETTINGS } from '../lib/constants';
 import { generateId, resolveSearchUrl, generateTabTitle } from '../lib/utils';
-import { cacheManager } from '../lib/cache';
 
-const storage = new MMKV();
-
-const mmkvStorage = {
-  getItem: (name: string) => {
-    const value = storage.getString(name);
-    return value ? JSON.parse(value) : null;
-  },
-  setItem: (name: string, value: any) => {
-    storage.set(name, JSON.stringify(value));
-  },
-  removeItem: (name: string) => {
-    storage.delete(name);
-  },
+const DEFAULT_SETTINGS: BrowserSettings = {
+  darkMode: false,
+  nightMode: false,
+  incognitoMode: false,
+  desktopMode: false,
+  adBlockEnabled: true,
+  searchEngine: 'google',
+  homepage: 'https://www.google.com',
+  autoSaveHistory: true,
+  maxHistoryItems: 1000,
 };
 
 interface BrowserState {
@@ -244,15 +239,6 @@ export const useBrowserStore = create<BrowserState>()(
             history: [newItem, ...state.history].slice(0, state.settings.maxHistoryItems),
           }));
         }
-
-        // Cache frequently visited sites
-        if (item.url && !state.settings.incognitoMode) {
-          cacheManager.set(`site_${item.url}`, {
-            title: item.title,
-            favicon: item.favicon,
-            lastVisit: Date.now(),
-          }, 7 * 24 * 60 * 60 * 1000); // 7 days
-        }
       },
       
       removeFromHistory: (id) => {
@@ -267,26 +253,12 @@ export const useBrowserStore = create<BrowserState>()(
       
       searchHistory: (query) => {
         const state = get();
-        
-        // Cache search results for better performance
-        const cacheKey = `history_search_${query.toLowerCase()}`;
-        const cached = cacheManager.get<HistoryItem[]>(cacheKey);
-        
-        if (cached) {
-          return cached;
-        }
-        
         const lowercaseQuery = query.toLowerCase();
         
-        const results = state.history.filter(item =>
+        return state.history.filter(item =>
           item.title.toLowerCase().includes(lowercaseQuery) ||
           item.url.toLowerCase().includes(lowercaseQuery)
         );
-        
-        // Cache results for 5 minutes
-        cacheManager.set(cacheKey, results, 5 * 60 * 1000);
-        
-        return results;
       },
       
       // Bookmarks actions
@@ -318,28 +290,14 @@ export const useBrowserStore = create<BrowserState>()(
       
       searchBookmarks: (query) => {
         const state = get();
-        
-        // Cache search results
-        const cacheKey = `bookmarks_search_${query.toLowerCase()}`;
-        const cached = cacheManager.get<BookmarkItem[]>(cacheKey);
-        
-        if (cached) {
-          return cached;
-        }
-        
         const lowercaseQuery = query.toLowerCase();
         
-        const results = state.bookmarks.filter(item =>
+        return state.bookmarks.filter(item =>
           item.title.toLowerCase().includes(lowercaseQuery) ||
           item.url.toLowerCase().includes(lowercaseQuery) ||
           item.folder.toLowerCase().includes(lowercaseQuery) ||
           (item.tags && item.tags.some(tag => tag.toLowerCase().includes(lowercaseQuery)))
         );
-        
-        // Cache results for 5 minutes
-        cacheManager.set(cacheKey, results, 5 * 60 * 1000);
-        
-        return results;
       },
       
       isBookmarked: (url) => {
@@ -403,7 +361,7 @@ export const useBrowserStore = create<BrowserState>()(
     }),
     {
       name: 'browser-store',
-      storage: createJSONStorage(() => mmkvStorage),
+      storage: createJSONStorage(() => AsyncStorage),
       partialize: (state) => ({
         settings: state.settings,
         activeTabs: state.activeTabs,

@@ -1,8 +1,8 @@
 import React from 'react';
-import { View, SafeAreaView } from 'react-native';
+import { View, SafeAreaView, StyleSheet } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StatusBar } from 'expo-status-bar';
-import { useBrowserStore } from '@/shared/store';
+import { useBrowserStore } from '@/shared/store/browser';
 
 interface ScreenLayoutProps {
   children: React.ReactNode;
@@ -29,8 +29,8 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
     return (
       <>
         <StatusBar style={statusBarStyle} backgroundColor={gradientColors[0]} />
-        <LinearGradient colors={gradientColors} className="flex-1">
-          <Container className="flex-1">
+        <LinearGradient colors={gradientColors} style={styles.container}>
+          <Container style={styles.container}>
             {children}
           </Container>
         </LinearGradient>
@@ -41,9 +41,15 @@ export const ScreenLayout: React.FC<ScreenLayoutProps> = ({
   return (
     <>
       <StatusBar style={statusBarStyle} backgroundColor="#0a0b1e" />
-      <Container className="flex-1 bg-background-primary">
+      <Container style={[styles.container, { backgroundColor: '#0a0b1e' }]}>
         {children}
       </Container>
     </>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+});

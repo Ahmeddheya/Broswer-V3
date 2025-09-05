@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { View, TextInput, TouchableOpacity } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { cn } from '@/shared/lib/utils';
 
 interface SearchInputProps {
   value: string;
@@ -10,8 +9,8 @@ interface SearchInputProps {
   onClear?: () => void;
   placeholder?: string;
   autoFocus?: boolean;
-  className?: string;
-  inputClassName?: string;
+  style?: any;
+  inputStyle?: any;
   showClearButton?: boolean;
   leftIcon?: keyof typeof Ionicons.glyphMap;
   rightIcon?: keyof typeof Ionicons.glyphMap;
@@ -25,8 +24,8 @@ export const SearchInput: React.FC<SearchInputProps> = ({
   onClear,
   placeholder = 'Search...',
   autoFocus = false,
-  className,
-  inputClassName,
+  style,
+  inputStyle,
   showClearButton = true,
   leftIcon = 'search',
   rightIcon,
@@ -41,18 +40,18 @@ export const SearchInput: React.FC<SearchInputProps> = ({
 
   return (
     <View 
-      className={cn(
-        'flex-row items-center bg-white/10 rounded-2xl px-4 py-3 border border-white/20',
-        isFocused && 'border-primary-500 bg-white/15',
-        className
-      )}
+      style={[
+        styles.container,
+        isFocused && styles.containerFocused,
+        style
+      ]}
     >
       {leftIcon && (
         <Ionicons 
           name={leftIcon} 
           size={20} 
           color="rgba(255, 255, 255, 0.6)" 
-          className="mr-3"
+          style={styles.leftIcon}
         />
       )}
       
@@ -68,23 +67,54 @@ export const SearchInput: React.FC<SearchInputProps> = ({
         autoCapitalize="none"
         autoCorrect={false}
         returnKeyType="search"
-        className={cn(
-          'flex-1 text-white text-base',
-          inputClassName
-        )}
+        style={[styles.input, inputStyle]}
       />
       
       {showClearButton && value.length > 0 && (
-        <TouchableOpacity onPress={handleClear} className="ml-2 p-1">
+        <TouchableOpacity onPress={handleClear} style={styles.clearButton}>
           <Ionicons name="close-circle" size={20} color="rgba(255, 255, 255, 0.6)" />
         </TouchableOpacity>
       )}
       
       {rightIcon && (
-        <TouchableOpacity onPress={onRightIconPress} className="ml-2 p-1">
+        <TouchableOpacity onPress={onRightIconPress} style={styles.rightIcon}>
           <Ionicons name={rightIcon} size={20} color="rgba(255, 255, 255, 0.6)" />
         </TouchableOpacity>
       )}
     </View>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    borderRadius: 16,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    minHeight: 52,
+  },
+  containerFocused: {
+    borderColor: '#4285f4',
+    backgroundColor: 'rgba(255, 255, 255, 0.15)',
+  },
+  leftIcon: {
+    marginRight: 12,
+  },
+  input: {
+    flex: 1,
+    color: '#ffffff',
+    fontSize: 16,
+  },
+  clearButton: {
+    marginLeft: 8,
+    padding: 4,
+  },
+  rightIcon: {
+    marginLeft: 8,
+    padding: 4,
+  },
+});

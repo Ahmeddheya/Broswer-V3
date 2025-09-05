@@ -1,9 +1,3 @@
-import { clsx, type ClassValue } from 'clsx';
-
-export function cn(...inputs: ClassValue[]) {
-  return clsx(inputs);
-}
-
 export function generateId(): string {
   return `${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
 }
@@ -26,10 +20,10 @@ export function formatTimeAgo(timestamp: number): string {
   const hours = Math.floor(diff / 3600000);
   const days = Math.floor(diff / 86400000);
   
-  if (minutes < 1) return 'الآن';
-  if (minutes < 60) return `منذ ${minutes} دقيقة`;
-  if (hours < 24) return `منذ ${hours} ساعة`;
-  return `منذ ${days} يوم`;
+  if (minutes < 1) return 'now';
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+  return `${days} day${days > 1 ? 's' : ''} ago`;
 }
 
 export function isValidUrl(string: string): boolean {
@@ -73,8 +67,8 @@ export function resolveSearchUrl(input: string, searchEngine: string = 'google')
 }
 
 export function generateTabTitle(url: string): string {
-  if (!url || url === 'about:blank') return 'تبويب جديد';
-  if (url.includes('google.com/search')) return 'بحث Google';
+  if (!url || url === 'about:blank') return 'New Tab';
+  if (url.includes('google.com/search')) return 'Google Search';
   
   const domain = extractDomain(url);
   const siteName = domain.split('.')[0];
@@ -93,65 +87,9 @@ export function debounce<T extends (...args: any[]) => any>(
   };
 }
 
-export function throttle<T extends (...args: any[]) => any>(
-  func: T,
-  limit: number
-): (...args: Parameters<T>) => void {
-  let inThrottle: boolean;
-  
-  return (...args: Parameters<T>) => {
-    if (!inThrottle) {
-      func(...args);
-      inThrottle = true;
-      setTimeout(() => (inThrottle = false), limit);
-    }
-  };
-}
-
 export function sanitizeFilename(filename: string): string {
   return filename
     .replace(/[<>:"/\\|?*]/g, '_')
     .replace(/\s+/g, '_')
     .substring(0, 255);
-}
-
-export function getFileExtension(filename: string): string {
-  return filename.split('.').pop()?.toLowerCase() || '';
-}
-
-export function getMimeType(filename: string): string {
-  const ext = getFileExtension(filename);
-  
-  const mimeTypes: Record<string, string> = {
-    // Images
-    jpg: 'image/jpeg',
-    jpeg: 'image/jpeg',
-    png: 'image/png',
-    gif: 'image/gif',
-    webp: 'image/webp',
-    svg: 'image/svg+xml',
-    
-    // Documents
-    pdf: 'application/pdf',
-    doc: 'application/msword',
-    docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    txt: 'text/plain',
-    
-    // Archives
-    zip: 'application/zip',
-    rar: 'application/x-rar-compressed',
-    '7z': 'application/x-7z-compressed',
-    
-    // Videos
-    mp4: 'video/mp4',
-    webm: 'video/webm',
-    mov: 'video/quicktime',
-    
-    // Audio
-    mp3: 'audio/mpeg',
-    wav: 'audio/wav',
-    ogg: 'audio/ogg',
-  };
-  
-  return mimeTypes[ext] || 'application/octet-stream';
 }

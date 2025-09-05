@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, FlatList, Alert, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
@@ -7,15 +7,12 @@ import { SearchInput } from '@/shared/ui/inputs/SearchInput';
 import { useBrowserStore } from '@/shared/store/browser';
 import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
 import { BookmarkItem } from '@/shared/types';
-import { BookmarkFolders } from './BookmarkFolders';
-import { AddBookmarkModal } from './AddBookmarkModal';
 
 export const BookmarksScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFolder, setSelectedFolder] = useState<string>('All');
-  const [showAddModal, setShowAddModal] = useState(false);
   
-  const { bookmarks, removeBookmark, searchBookmarks, addBookmark } = useBrowserStore();
+  const { bookmarks, removeBookmark, searchBookmarks } = useBrowserStore();
 
   const handleItemPress = (url: string) => {
     router.replace(`/?url=${encodeURIComponent(url)}`);
@@ -47,25 +44,25 @@ export const BookmarksScreen: React.FC = () => {
   const renderBookmarkItem = ({ item }: { item: BookmarkItem }) => (
     <TouchableOpacity
       onPress={() => handleItemPress(item.url)}
-      className="bg-white/5 rounded-xl p-4 mb-3 border border-white/10"
+      style={styles.bookmarkItem}
     >
-      <View className="flex-row items-center">
-        <View className="w-10 h-10 rounded-full bg-primary-500/20 items-center justify-center mr-3">
+      <View style={styles.bookmarkContent}>
+        <View style={styles.bookmarkIcon}>
           <Ionicons name="bookmark" size={20} color="#4285f4" />
         </View>
         
-        <View className="flex-1 mr-3">
-          <Text className="text-base font-semibold text-white" numberOfLines={1}>
+        <View style={styles.bookmarkInfo}>
+          <Text style={styles.bookmarkTitle} numberOfLines={1}>
             {item.title}
           </Text>
-          <Text className="text-sm text-white/70" numberOfLines={1}>
+          <Text style={styles.bookmarkUrl} numberOfLines={1}>
             {extractDomain(item.url)}
           </Text>
-          <View className="flex-row items-center mt-1">
-            <Text className="text-xs text-primary-400 font-medium">
+          <View style={styles.bookmarkMeta}>
+            <Text style={styles.bookmarkFolder}>
               {item.folder}
             </Text>
-            <Text className="text-xs text-white/50 ml-2">
+            <Text style={styles.bookmarkTime}>
               • {formatTimeAgo(item.dateAdded)}
             </Text>
           </View>
@@ -73,7 +70,7 @@ export const BookmarksScreen: React.FC = () => {
         
         <TouchableOpacity
           onPress={() => handleDeleteBookmark(item)}
-          className="w-9 h-9 rounded-full bg-red-500/20 items-center justify-center"
+          style={styles.deleteButton}
         >
           <Ionicons name="trash-outline" size={18} color="#ff6b6b" />
         </TouchableOpacity>
@@ -84,13 +81,13 @@ export const BookmarksScreen: React.FC = () => {
   return (
     <ScreenLayout>
       {/* Header */}
-      <View className="px-5 py-4 pt-12 border-b border-white/10">
-        <View className="flex-row items-center justify-between mb-4">
+      <View style={styles.header}>
+        <View style={styles.headerContent}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-white">Bookmarks</Text>
-          <TouchableOpacity onPress={() => setShowAddModal(true)}>
+          <Text style={styles.headerTitle}>Bookmarks</Text>
+          <TouchableOpacity>
             <Ionicons name="add-circle-outline" size={24} color="#4285f4" />
           </TouchableOpacity>
         </View>
@@ -99,49 +96,139 @@ export const BookmarksScreen: React.FC = () => {
           value={searchQuery}
           onChangeText={setSearchQuery}
           placeholder="Search bookmarks..."
+          style={styles.searchInput}
         />
       </View>
 
-      <View className="flex-1 px-5 pt-4">
-        {/* Folders */}
-        <BookmarkFolders
-          folders={folders}
-          selectedFolder={selectedFolder}
-          onFolderSelect={setSelectedFolder}
-          bookmarks={bookmarks}
-        />
-        
+      <View style={styles.content}>
         {filteredBookmarks.length > 0 ? (
           <FlatList
             data={filteredBookmarks}
             renderItem={renderBookmarkItem}
             keyExtractor={item => item.id}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20 }}
+            contentContainerStyle={styles.listContent}
           />
         ) : (
-          <View className="flex-1 items-center justify-center px-10">
+          <View style={styles.emptyState}>
             <Ionicons name="bookmark-outline" size={64} color="#666" />
-            <Text className="text-xl font-bold text-white mt-4 mb-2 text-center">
-              No Bookmarks
-            </Text>
-            <Text className="text-base text-white/60 text-center leading-6">
+            <Text style={styles.emptyTitle}>No Bookmarks</Text>
+            <Text style={styles.emptySubtitle}>
               Start saving your favorite websites
             </Text>
           </View>
         )}
       </View>
-
-      {/* Add Bookmark Modal */}
-      <AddBookmarkModal
-        visible={showAddModal}
-        onClose={() => setShowAddModal(false)}
-        onAdd={(bookmark) => {
-          addBookmark(bookmark);
-          setShowAddModal(false);
-        }}
-        existingFolders={folders.filter(f => f !== 'All')}
-      />
     </ScreenLayout>
   );
 };
+
+const styles = StyleSheet.create({
+  header: {
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    paddingTop: 48,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  headerContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+  },
+  searchInput: {
+    marginBottom: 16,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 16,
+  },
+  listContent: {
+    paddingBottom: 20,
+  },
+  bookmarkItem: {
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.1)',
+  },
+  bookmarkContent: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bookmarkIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(66, 133, 244, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
+  },
+  bookmarkInfo: {
+    flex: 1,
+    marginRight: 12,
+  },
+  bookmarkTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#ffffff',
+    marginBottom: 4,
+  },
+  bookmarkUrl: {
+    fontSize: 14,
+    color: 'rgba(255, 255, 255, 0.7)',
+    marginBottom: 4,
+  },
+  bookmarkMeta: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  bookmarkFolder: {
+    fontSize: 12,
+    color: '#4285f4',
+    fontWeight: '500',
+  },
+  bookmarkTime: {
+    fontSize: 12,
+    color: 'rgba(255, 255, 255, 0.5)',
+    marginLeft: 4,
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: 'rgba(255, 107, 107, 0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyState: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 40,
+  },
+  emptyTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#ffffff',
+    marginTop: 16,
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  emptySubtitle: {
+    fontSize: 16,
+    color: 'rgba(255, 255, 255, 0.6)',
+    textAlign: 'center',
+    lineHeight: 24,
+  },
+});
