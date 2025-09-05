@@ -3,8 +3,9 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { useBrowserStore } from '@/shared/store';
+import { useBrowserStore } from '@/shared/store/browser';
 import { useFrameworkReady } from '@/shared/lib/hooks';
+import '@/shared/lib/i18n';
 import '@/shared/styles/global.css';
 
 // Create a client

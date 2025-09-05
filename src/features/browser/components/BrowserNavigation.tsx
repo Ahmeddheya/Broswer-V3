@@ -11,6 +11,7 @@ interface BrowserNavigationProps {
   onTabs: () => void;
   onMenu: () => void;
   isHomePage: boolean;
+  tabsCount?: number;
 }
 
 export const BrowserNavigation: React.FC<BrowserNavigationProps> = ({
@@ -22,6 +23,7 @@ export const BrowserNavigation: React.FC<BrowserNavigationProps> = ({
   onTabs,
   onMenu,
   isHomePage,
+  tabsCount = 0,
 }) => {
   return (
     <View className="bg-background-secondary/90 px-5 py-3 border-t border-white/10">
@@ -69,9 +71,16 @@ export const BrowserNavigation: React.FC<BrowserNavigationProps> = ({
 
         <TouchableOpacity
           onPress={onTabs}
-          className="w-11 h-11 rounded-full bg-white/10 items-center justify-center"
+          className="w-11 h-11 rounded-full bg-white/10 items-center justify-center relative"
         >
           <Ionicons name="copy-outline" size={24} color="#ffffff" />
+          {tabsCount > 0 && (
+            <View className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-primary-500 items-center justify-center">
+              <Text className="text-white text-xs font-bold">
+                {tabsCount > 99 ? '99+' : tabsCount}
+              </Text>
+            </View>
+          )}
         </TouchableOpacity>
 
         <TouchableOpacity

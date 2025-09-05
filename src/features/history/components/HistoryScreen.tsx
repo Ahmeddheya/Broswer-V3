@@ -4,12 +4,15 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
 import { SearchInput } from '@/shared/ui/inputs/SearchInput';
-import { useBrowserStore } from '@/shared/store';
+import { useBrowserStore } from '@/shared/store/browser';
 import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
 import { HistoryItem } from '@/shared/types';
+import { HistoryGroupedList } from './HistoryGroupedList';
+import { HistoryStats } from './HistoryStats';
 
 export const HistoryScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grouped'>('grouped');
   
   const { history, removeFromHistory, clearHistory, searchHistory } = useBrowserStore();
 
@@ -34,12 +37,12 @@ export const HistoryScreen: React.FC = () => {
 
   const handleClearHistory = () => {
     Alert.alert(
-      'مسح التاريخ',
-      'هل تريد مسح جميع سجل التصفح؟',
+      'Clear History',
+      'Are you sure you want to clear all browsing history?',
       [
-        { text: 'إلغاء', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'مسح',
+          text: 'Clear',
           style: 'destructive',
           onPress: clearHistory,
         },
@@ -98,36 +101,65 @@ export const HistoryScreen: React.FC = () => {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-white">التاريخ</Text>
-          <TouchableOpacity onPress={handleClearHistory}>
-            <Ionicons name="trash-outline" size={24} color="#ff6b6b" />
+          <Text className="text-xl font-bold text-white">History</Text>
+          <View className="flex-row items-center space-x-2">
+            <TouchableOpacity 
+              onPress={() => setViewMode(viewMode === 'list' ? 'grouped' : 'list')}
+              className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
+            >
+              <Ionicons 
+                name={viewMode === 'list' ? 'list' : 'grid'} 
+                size={20} 
+                color="#ffffff" 
+              />
+            </TouchableOpacity>
+            <TouchableOpacity 
+              onPress={handleClearHistory}
+              className="w-10 h-10 rounded-full bg-red-500/20 items-center justify-center"
+            >
+              <Ionicons name="trash-outline" size={20} color="#ff6b6b" />
+            </TouchableOpacity>
+          </View>
           </TouchableOpacity>
         </View>
         
         <SearchInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="البحث في التاريخ..."
+          placeholder="Search history..."
         />
       </View>
 
       <View className="flex-1 px-5 pt-4">
+        {/* Stats */}
+        {!searchQuery && (
+          <HistoryStats history={history} />
+        )}
+        
         {filteredHistory.length > 0 ? (
-          <FlatList
-            data={filteredHistory}
-            renderItem={renderHistoryItem}
-            keyExtractor={item => item.id}
-            showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 20 }}
-          />
+          viewMode === 'grouped' ? (
+            <HistoryGroupedList 
+              history={filteredHistory}
+              onItemPress={handleItemPress}
+              onDeleteItem={handleDeleteItem}
+            />
+          ) : (
+            <FlatList
+              data={filteredHistory}
+              renderItem={renderHistoryItem}
+              keyExtractor={item => item.id}
+              showsVerticalScrollIndicator={false}
+              contentContainerStyle={{ paddingBottom: 20 }}
+            />
+          )
         ) : (
           <View className="flex-1 items-center justify-center px-10">
             <Ionicons name="time-outline" size={64} color="#666" />
             <Text className="text-xl font-bold text-white mt-4 mb-2 text-center">
-              لا يوجد تاريخ
+              No History
             </Text>
             <Text className="text-base text-white/60 text-center leading-6">
-              سجل تصفحك سيظهر هنا
+              Your browsing history will appear here
             </Text>
           </View>
         )}

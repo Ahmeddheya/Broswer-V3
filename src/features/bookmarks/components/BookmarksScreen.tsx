@@ -4,14 +4,18 @@ import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
 import { SearchInput } from '@/shared/ui/inputs/SearchInput';
-import { useBrowserStore } from '@/shared/store';
+import { useBrowserStore } from '@/shared/store/browser';
 import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
 import { BookmarkItem } from '@/shared/types';
+import { BookmarkFolders } from './BookmarkFolders';
+import { AddBookmarkModal } from './AddBookmarkModal';
 
 export const BookmarksScreen: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
+  const [selectedFolder, setSelectedFolder] = useState<string>('All');
+  const [showAddModal, setShowAddModal] = useState(false);
   
-  const { bookmarks, removeBookmark, searchBookmarks } = useBrowserStore();
+  const { bookmarks, removeBookmark, searchBookmarks, addBookmark } = useBrowserStore();
 
   const handleItemPress = (url: string) => {
     router.replace(`/?url=${encodeURIComponent(url)}`);
@@ -19,12 +23,12 @@ export const BookmarksScreen: React.FC = () => {
 
   const handleDeleteBookmark = (item: BookmarkItem) => {
     Alert.alert(
-      'حذف المفضلة',
-      `هل تريد حذف "${item.title}" من المفضلة؟`,
+      'Delete Bookmark',
+      `Are you sure you want to delete "${item.title}"?`,
       [
-        { text: 'إلغاء', style: 'cancel' },
+        { text: 'Cancel', style: 'cancel' },
         {
-          text: 'حذف',
+          text: 'Delete',
           style: 'destructive',
           onPress: () => removeBookmark(item.id),
         },
@@ -34,7 +38,11 @@ export const BookmarksScreen: React.FC = () => {
 
   const filteredBookmarks = searchQuery 
     ? searchBookmarks(searchQuery)
-    : bookmarks;
+    : selectedFolder === 'All' 
+      ? bookmarks 
+      : bookmarks.filter(bookmark => bookmark.folder === selectedFolder);
+
+  const folders = ['All', ...new Set(bookmarks.map(b => b.folder))];
 
   const renderBookmarkItem = ({ item }: { item: BookmarkItem }) => (
     <TouchableOpacity
@@ -81,20 +89,28 @@ export const BookmarksScreen: React.FC = () => {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-white">المفضلة</Text>
-          <TouchableOpacity>
-            <Ionicons name="add-outline" size={24} color="#ffffff" />
+          <Text className="text-xl font-bold text-white">Bookmarks</Text>
+          <TouchableOpacity onPress={() => setShowAddModal(true)}>
+            <Ionicons name="add-circle-outline" size={24} color="#4285f4" />
           </TouchableOpacity>
         </View>
         
         <SearchInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="البحث في المفضلة..."
+          placeholder="Search bookmarks..."
         />
       </View>
 
       <View className="flex-1 px-5 pt-4">
+        {/* Folders */}
+        <BookmarkFolders
+          folders={folders}
+          selectedFolder={selectedFolder}
+          onFolderSelect={setSelectedFolder}
+          bookmarks={bookmarks}
+        />
+        
         {filteredBookmarks.length > 0 ? (
           <FlatList
             data={filteredBookmarks}
@@ -107,14 +123,25 @@ export const BookmarksScreen: React.FC = () => {
           <View className="flex-1 items-center justify-center px-10">
             <Ionicons name="bookmark-outline" size={64} color="#666" />
             <Text className="text-xl font-bold text-white mt-4 mb-2 text-center">
-              لا توجد مفضلة
+              No Bookmarks
             </Text>
             <Text className="text-base text-white/60 text-center leading-6">
-              ابدأ بحفظ مواقعك المفضلة
+              Start saving your favorite websites
             </Text>
           </View>
         )}
       </View>
+
+      {/* Add Bookmark Modal */}
+      <AddBookmarkModal
+        visible={showAddModal}
+        onClose={() => setShowAddModal(false)}
+        onAdd={(bookmark) => {
+          addBookmark(bookmark);
+          setShowAddModal(false);
+        }}
+        existingFolders={folders.filter(f => f !== 'All')}
+      />
     </ScreenLayout>
   );
 };

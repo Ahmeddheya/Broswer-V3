@@ -16,6 +16,9 @@ interface BrowserHeaderProps {
   onForward?: () => void;
   onReload?: () => void;
   onNewTab?: () => void;
+  onFindInPage?: () => void;
+  onBookmark?: () => void;
+  isBookmarked?: boolean;
   incognitoMode?: boolean;
 }
 
@@ -32,6 +35,9 @@ export const BrowserHeader: React.FC<BrowserHeaderProps> = ({
   onForward,
   onReload,
   onNewTab,
+  onFindInPage,
+  onBookmark,
+  isBookmarked = false,
   incognitoMode = false,
 }) => {
   if (showUrlBar) {
@@ -91,6 +97,17 @@ export const BrowserHeader: React.FC<BrowserHeaderProps> = ({
               </View>
             )}
           </View>
+          
+          <TouchableOpacity
+            onPress={onBookmark}
+            className="w-9 h-9 rounded-full bg-white/10 items-center justify-center"
+          >
+            <Ionicons 
+              name={isBookmarked ? "bookmark" : "bookmark-outline"} 
+              size={20} 
+              color={isBookmarked ? "#4CAF50" : "#ffffff"} 
+            />
+          </TouchableOpacity>
           
           <TouchableOpacity
             onPress={onNewTab}

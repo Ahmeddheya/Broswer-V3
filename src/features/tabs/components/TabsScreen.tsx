@@ -2,15 +2,24 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ScreenLayout } from '@/shared/ui/layouts/ScreenLayout';
 import { SearchInput } from '@/shared/ui/inputs/SearchInput';
 import { Button } from '@/shared/ui/buttons/Button';
-import { useBrowserStore } from '@/shared/store';
+import { useBrowserStore } from '@/shared/store/browser';
 import { formatTimeAgo, extractDomain } from '@/shared/lib/utils';
 import { Tab, ClosedTab } from '@/shared/types';
+import { RTLView } from '@/shared/components/RTLView';
+import { RTLText } from '@/shared/components/RTLText';
+import { TabPreview } from './TabPreview';
+import { useOptimizedFlatList } from '@/shared/hooks/useOptimizedFlatList';
+import { usePerformanceMonitor } from '@/shared/hooks/usePerformanceMonitor';
 
 export const TabsScreen: React.FC = () => {
+  const { t } = useTranslation();
+  const { measureAsync } = usePerformanceMonitor('TabsScreen');
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('grid');
   
   const {
     activeTabs,
@@ -44,22 +53,22 @@ export const TabsScreen: React.FC = () => {
 
   const handleCloseAllTabs = () => {
     Alert.alert(
-      'Close All Tabs',
-      'Are you sure you want to close all active tabs?',
+      t('browser.closeAllTabs'),
+      t('tabs.closeAllTabsConfirm', 'Are you sure you want to close all active tabs?'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Close All', style: 'destructive', onPress: closeAllTabs }
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('browser.closeAllTabs'), style: 'destructive', onPress: closeAllTabs }
       ]
     );
   };
 
   const handleClearClosedTabs = () => {
     Alert.alert(
-      'Clear Recently Closed',
-      'Are you sure you want to clear all recently closed tabs?',
+      t('tabs.clearRecentlyClosed', 'Clear Recently Closed'),
+      t('tabs.clearRecentlyClosedConfirm', 'Are you sure you want to clear all recently closed tabs?'),
       [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Clear All', style: 'destructive', onPress: clearClosedTabs }
+        { text: t('common.cancel'), style: 'cancel' },
+        { text: t('common.clear'), style: 'destructive', onPress: clearClosedTabs }
       ]
     );
   };
@@ -73,6 +82,18 @@ export const TabsScreen: React.FC = () => {
     tab.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     tab.url.toLowerCase().includes(searchQuery.toLowerCase())
   );
+
+  // Optimized FlatList props
+  const activeTabsListProps = useOptimizedFlatList({
+    itemHeight: 80,
+    data: filteredActiveTabs,
+    numColumns: viewMode === 'grid' ? 2 : 1,
+  });
+
+  const closedTabsListProps = useOptimizedFlatList({
+    itemHeight: 80,
+    data: filteredClosedTabs,
+  });
 
   const renderActiveTab = ({ item }: { item: Tab }) => (
     <TouchableOpacity
@@ -154,18 +175,27 @@ export const TabsScreen: React.FC = () => {
     <ScreenLayout>
       {/* Header */}
       <View className="px-5 py-4 pt-12 border-b border-white/10">
-        <View className="flex-row items-center justify-between mb-4">
+        <RTLView className="items-center justify-between mb-4">
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#ffffff" />
           </TouchableOpacity>
-          <Text className="text-xl font-bold text-white">إدارة التبويبات</Text>
-          <View className="w-6" />
-        </View>
+          <RTLText className="text-xl font-bold text-white">{t('tabs.title')}</RTLText>
+          <TouchableOpacity 
+            onPress={() => setViewMode(viewMode === 'list' ? 'grid' : 'list')}
+            className="w-10 h-10 rounded-full bg-white/10 items-center justify-center"
+          >
+            <Ionicons 
+              name={viewMode === 'list' ? 'grid' : 'list'} 
+              size={20} 
+              color="#ffffff" 
+            />
+          </TouchableOpacity>
+        </RTLView>
         
         <SearchInput
           value={searchQuery}
           onChangeText={setSearchQuery}
-          placeholder="البحث في التبويبات..."
+          placeholder={t('tabs.searchTabs')}
           className="mb-4"
         />
       </View>
@@ -173,7 +203,7 @@ export const TabsScreen: React.FC = () => {
       <View className="flex-1 px-5">
         {/* Create New Tab Button */}
         <Button
-          title="إنشاء تبويب جديد"
+          title={t('browser.newTab')}
           onPress={handleCreateNewTab}
           gradient
           icon={<Ionicons name="add-circle-outline" size={24} color="#ffffff" />}
@@ -183,49 +213,70 @@ export const TabsScreen: React.FC = () => {
         {/* Active Tabs Section */}
         {filteredActiveTabs.length > 0 && (
           <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-bold text-white">
-                التبويبات النشطة ({filteredActiveTabs.length})
-              </Text>
+            <RTLView className="items-center justify-between mb-4">
+              <RTLText className="text-lg font-bold text-white">
+                {t('tabs.activeTabs')} ({filteredActiveTabs.length})
+              </RTLText>
               <TouchableOpacity
                 onPress={handleCloseAllTabs}
                 className="bg-red-500/20 px-3 py-1 rounded-lg border border-red-500/30"
               >
-                <Text className="text-red-400 text-sm font-semibold">إغلاق الكل</Text>
+                <RTLText className="text-red-400 text-sm font-semibold">
+                  {t('browser.closeAllTabs')}
+                </RTLText>
               </TouchableOpacity>
-            </View>
+            </RTLView>
             
-            <FlatList
-              data={filteredActiveTabs}
-              renderItem={renderActiveTab}
-              keyExtractor={item => item.id}
-              showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
-            />
+            {viewMode === 'grid' ? (
+              <FlatList
+                data={filteredActiveTabs}
+                {...activeTabsListProps}
+                renderItem={({ item }) => (
+                  <TabPreview
+                    tab={item}
+                    isActive={currentTabId === item.id}
+                    onPress={() => handleTabPress(item)}
+                    onClose={() => handleCloseTab(item.id)}
+                  />
+                )}
+                keyExtractor={item => item.id}
+                numColumns={2}
+                columnWrapperStyle={{ justifyContent: 'space-between' }}
+                showsVerticalScrollIndicator={false}
+              />
+            ) : (
+              <FlatList
+                data={filteredActiveTabs}
+                {...activeTabsListProps}
+                renderItem={renderActiveTab}
+                showsVerticalScrollIndicator={false}
+              />
+            )}
           </View>
         )}
 
         {/* Recently Closed Section */}
         {filteredClosedTabs.length > 0 && (
           <View className="mb-6">
-            <View className="flex-row justify-between items-center mb-4">
-              <Text className="text-lg font-bold text-white">
-                المغلقة مؤخراً ({filteredClosedTabs.length})
-              </Text>
+            <RTLView className="items-center justify-between mb-4">
+              <RTLText className="text-lg font-bold text-white">
+                {t('tabs.recentlyClosed')} ({filteredClosedTabs.length})
+              </RTLText>
               <TouchableOpacity
                 onPress={handleClearClosedTabs}
                 className="bg-red-500/20 px-3 py-1 rounded-lg border border-red-500/30"
               >
-                <Text className="text-red-400 text-sm font-semibold">مسح الكل</Text>
+                <RTLText className="text-red-400 text-sm font-semibold">
+                  {t('common.clear')}
+                </RTLText>
               </TouchableOpacity>
-            </View>
+            </RTLView>
             
             <FlatList
               data={filteredClosedTabs}
+              {...closedTabsListProps}
               renderItem={renderClosedTab}
-              keyExtractor={item => item.id}
               showsVerticalScrollIndicator={false}
-              scrollEnabled={false}
             />
           </View>
         )}
@@ -234,12 +285,12 @@ export const TabsScreen: React.FC = () => {
         {filteredActiveTabs.length === 0 && filteredClosedTabs.length === 0 && (
           <View className="flex-1 items-center justify-center px-10">
             <Ionicons name="layers-outline" size={64} color="#4285f4" />
-            <Text className="text-xl font-bold text-white mt-4 mb-2 text-center">
-              لا توجد تبويبات
-            </Text>
-            <Text className="text-base text-white/60 text-center leading-6">
-              أنشئ تبويبك الأول لبدء التصفح
-            </Text>
+            <RTLText className="text-xl font-bold text-white mt-4 mb-2 text-center">
+              {t('browser.noTabs')}
+            </RTLText>
+            <RTLText className="text-base text-white/60 text-center leading-6">
+              {t('browser.createFirstTab')}
+            </RTLText>
           </View>
         )}
       </View>
