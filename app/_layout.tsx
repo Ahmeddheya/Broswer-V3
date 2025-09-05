@@ -4,7 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useBrowserStore } from '@/shared/store/browser';
-import { useFrameworkReady } from '@/shared/lib/hooks';
+import { useFrameworkReady } from '@/shared/lib/hooks'
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 // Create a client
 const queryClient = new QueryClient({
