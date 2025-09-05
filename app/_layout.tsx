@@ -2,9 +2,11 @@ import { useEffect } from 'react';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { useBrowserStore } from '@/shared/store/browser';
+import { useBrowserStore } from '@/shared/store/browser'
+import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 
 export default function RootLayout() {
+  useFrameworkReady();
   const initialize = useBrowserStore(state => state.initialize);
   
   useEffect(() => {
